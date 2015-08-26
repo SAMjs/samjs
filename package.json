@@ -1,0 +1,33 @@
+{
+  "name": "samjs",
+  "description": "",
+  "version": "0.1.0",
+  "repository": "https://github.com/SAMjs/samjs",
+  "author": {
+    "name": "Paul Pflugradt",
+    "email": "paul.pflugradt@gmail.com"
+  },
+  "main": "lib/main.js",
+  "engines": {
+    "node": "*"
+  },
+  "dependencies": {
+    "bluebird": "^2.9.33",
+    "core-util-is": "^1.0.1",
+    "debug": "^2.2.0",
+    "socket.io": "^1.3.5"
+  },
+  "devDependencies": {
+    "atom-ui-reporter": "0.0.1",
+    "chai": "^3.0.0",
+    "coffee-script": "^1.9.3",
+    "mocha": "^2.2.5",
+    "samjs-client": "*",
+    "simple-reload": "0.0.4",
+    "socket.io-client": "^1.3.5"
+  },
+  "keywords": [],
+  "readmeFilename": "README.md",
+  "scripts": {
+  }
+}
