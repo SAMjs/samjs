@@ -11,11 +11,14 @@ module.exports = (samjs) -> samjs.startup = (server) ->
   else
     samjs.debug.startup "creating httpServer"
     samjs.io = io()
+  samjs.exposeInterface = (name, listener) ->
+    samjs.io.of("/#{name}").on "connection", listener
+    return -> samjs.io.of("/#{name}").removeListener "connection", listener
   samjs.debug.startup "checking installation"
   install = require("./install")(samjs)
   samjs.started = samjs.state.ifConfigured()
   .then -> samjs.debug.startup "already configured"
-  .catch install.configure
+  .catch ((e) -> e.message=="not configured"),install.configure
   .then ->
     samjs.debug.startup "starting plugins"
     required = []
@@ -33,7 +36,7 @@ module.exports = (samjs) -> samjs.startup = (server) ->
   .then -> samjs.debug.startup "models started"
   .then samjs.state.ifInstalled
   .then -> samjs.debug.startup "already installed"
-  .catch install.install
+  .catch ((e) -> e.message=="not installed"),install.install
   .then install.finish
   .then ->
     samjs.debug.startup "exposing configuration"
@@ -42,7 +45,9 @@ module.exports = (samjs) -> samjs.startup = (server) ->
     samjs.debug.startup "exposing models"
     for name, model of samjs.models
       for name, listener of model.interfaces
-        samjs.io.of("/#{name}").on "connection", listener.bind(model)
+        model.removeInterface[name] = samjs.exposeInterface(name,
+                                                      listener.bind(model))
+
   .then ->
     samjs.debug.startup("emitting 'startup'")
     samjs.emit "startup"

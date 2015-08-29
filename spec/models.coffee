@@ -5,11 +5,10 @@ describe "samjs", ->
   describe "models", ->
     describe "simple",->
       beforeEach -> samjs.reset().plugins().options().configs()
-      it "should throw on empty, nameless or interfaceless", ->
+      it "should throw on empty or nameless", ->
         (->samjs.models({})).should.throw()
         (->samjs.models({interfaces:[(->)]})).should.throw()
-        (->samjs.models({name:"test"})).should.throw()
-      it "should throw interface not array", ->
+      it "should throw interface not obj", ->
         (->samjs.models({
           name:"test"
           interfaces:(->)

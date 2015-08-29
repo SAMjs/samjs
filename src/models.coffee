@@ -4,8 +4,8 @@ module.exports = (samjs) ->
     constructor: (options) ->
       throw new Error("can't create empty model") unless options?
       throw new Error("model needs 'name'") unless options.name?
-      unless options.interfaces? and samjs.util.isObject options.interfaces
-        throw new Error("model #{options.name} needs 'interfaces'")
+      if options.interfaces? and not samjs.util.isObject options.interfaces
+        throw new Error("model #{options.name}.interfaces need to be an object")
       if options.isRequired
         unless options.installInterface? and
             samjs.util.isFunction options.installInterface
@@ -15,6 +15,7 @@ module.exports = (samjs) ->
       samjs.helper.merge(dest:@,src:options,overwrite:true)
       @class = "Model"
       @isRequired ?= false
+      @removeInterface ?= {}
   samjs.models = (models...) ->
     samjs.helper.inOrder("models")
     models = samjs.helper.parseSplats(models)
@@ -23,6 +24,8 @@ module.exports = (samjs) ->
     samjs.debug.models("processing")
     createModel = (model) ->
       if model?
+        if samjs.util.isFunction model
+          model = model(samjs)
         if model.db? and samjs[model.db]?.processModel?
           model = samjs[model.db].processModel.bind(samjs[model.db])(model)
         model = new Model(model)

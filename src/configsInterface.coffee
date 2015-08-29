@@ -24,10 +24,8 @@ module.exports = (samjs) ->
     socket.on config.name + ".set", (request) ->
       if request?.content? and request.token?
         config.set(request.content, socket.client)
-        .return config
-        .call "_get"
         .then (response) ->
-          socket.broadcast.emit "update", config.name
+          socket.broadcast.emit "updated", config.name
           success:true , content:response
         .catch (err)     -> success:false, content:null
         .then (response) ->

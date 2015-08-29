@@ -127,5 +127,5 @@ module.exports = (samjs) ->
       if samjs.io.engine?
         debug "issuing reconnect of all connected sockets"
         for socket in samjs.io.nsps["/"].sockets
-          socket.onclose("reconnect")
+          socket?.onclose("reconnect")
         samjs.io.engine.close()

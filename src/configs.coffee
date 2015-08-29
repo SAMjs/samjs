@@ -41,10 +41,14 @@ module.exports = (samjs) ->
           return fs.readFileAsync samjs.options.config
           .catch -> return "{}"
           .then JSON.parse
+          .catch -> return {}
           .then (data) =>
             data[@name] = newContent
             @data = newContent
             return fs.writeFileAsync samjs.options.config, JSON.stringify(data)
+        .then =>
+          samjs.emit "#{@name}.updated", newContent
+          return newContent
   samjs.configs = (configs...) ->
     samjs.helper.inOrder("configs")
     configs = samjs.helper.parseSplats(configs)
