@@ -16,6 +16,23 @@ module.exports = (samjs) ->
       @class = "Model"
       @isRequired ?= false
       @removeInterface ?= {}
+    exposeInterfaces: (name) =>
+      exposeInterface = (itf, name) ->
+        samjs.io.of("/#{name}").on "connection", itf
+        return -> samjs.io.of("/#{name}").removeListener "connection", itf
+      exposeInterfaces = (interfaces, name) =>
+        @removeInterface[name] ?= []
+        if samjs.util.isArray interfaces
+          for itf in interfaces
+            @removeInterface[name].push exposeInterface(itf.bind(@), name)
+        else
+          @removeInterface[name].push exposeInterface(interfaces.bind(@), name)
+      if name
+        exposeInterfaces(@interfaces[name], name)
+      else
+        for name, interfaces of @interfaces
+          exposeInterfaces(interfaces, name)
+      return @
   samjs.models = (models...) ->
     samjs.helper.inOrder("models")
     models = samjs.helper.parseSplats(models)
