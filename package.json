@@ -29,5 +29,6 @@
   "keywords": [],
   "readmeFilename": "README.md",
   "scripts": {
+    "patch": "npm version patch;npm publish;git push;git push --tags"
   }
 }
