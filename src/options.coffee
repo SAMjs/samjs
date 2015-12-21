@@ -1,8 +1,7 @@
 # out: ../lib/options.js
 module.exports = (samjs) -> samjs.options = (options) ->
   samjs.helper.inOrder("options")
-  samjs.debug.options("emitting 'beforeOptions'")
-  samjs.emit "beforeOptions", options
+  samjs.lifecycle.beforeOptions options
   samjs.debug.options("processing")
   if options?
     samjs.options = samjs.helper.merge({
@@ -23,8 +22,7 @@ module.exports = (samjs) -> samjs.options = (options) ->
         overwrite: overwrite
         })
   samjs.options.setDefaults(false)
-  samjs.debug.options("emitting 'options'")
-  samjs.emit "options", options
+  samjs.lifecycle.options options
   samjs.debug.options("finished")
   samjs.expose.configs()
   return samjs

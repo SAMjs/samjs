@@ -2,8 +2,7 @@
 io = require "socket.io"
 module.exports = (samjs) -> samjs.startup = (server) ->
   throw new Error "already started up, shutdown first" if samjs.started?
-  samjs.debug.startup("emitting 'beforeStartup'")
-  samjs.emit "beforeStartup", server
+  samjs.lifecycle.beforeStartup()
   samjs.debug.startup "processing"
   if server
     samjs.debug.startup "got server"
@@ -13,8 +12,10 @@ module.exports = (samjs) -> samjs.startup = (server) ->
     samjs.io = io()
   samjs.debug.startup "checking installation"
   install = require("./install")(samjs)
-  samjs.started = samjs.state.ifConfigured()
-  .then -> samjs.debug.startup "already configured"
+  samjs.state.startup = samjs.state.ifConfigured()
+  .then ->
+    samjs.lifecycle.configured()
+    samjs.debug.startup "already configured"
   .catch ((e) -> e.message=="not configured"),install.configure
   .then ->
     samjs.debug.startup "starting plugins"
@@ -32,22 +33,19 @@ module.exports = (samjs) -> samjs.startup = (server) ->
     samjs.Promise.all required
   .then -> samjs.debug.startup "models started"
   .then samjs.state.ifInstalled
-  .then -> samjs.debug.startup "already installed"
+  .then ->
+    samjs.lifecycle.installed()
+    samjs.debug.startup "already installed"
   .catch ((e) -> e.message=="not installed"),install.install
   .then install.finish
   .then ->
-    samjs.debug.startup "exposing configuration"
-    samjs.io.of("/config").on "connection", require("./configsInterface")(samjs)
+    samjs.debug.startup "exposing interfaces"
+    samjs.interfaces.expose()
   .then ->
-    samjs.debug.startup "exposing models"
-    for name, model of samjs.models
-      model.exposeInterfaces()
-
-  .then ->
-    samjs.debug.startup("emitting 'startup'")
-    samjs.emit "startup"
+    samjs.lifecycle.started()
     samjs.debug.startup("finished")
     samjs.io.of("/").emit "loaded"
     samjs.expose.shutdown()
     return samjs
+  samjs.lifecycle.startup()
   return samjs

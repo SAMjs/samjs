@@ -38,7 +38,7 @@ describe "samjs", ->
         read: true
         test: test
         }).models().startup().io.listen(port)
-      samjs.started.then ->
+      samjs.state.onceStarted.then ->
         config = reload("samjs-client")({
           url: url
           ioOpts:

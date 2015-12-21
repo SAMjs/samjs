@@ -21,8 +21,7 @@ module.exports = (samjs) ->
     return remover
   return new class Install
     configure: =>
-      debug "emitting beforeConfigure"
-      samjs.emit "beforeConfigure"
+      samjs.lifecycle.beforeConfigure()
       debug "exposing configuration"
       disposes = []
       samjs.io.of("/configure").on "connection", (socket) =>
@@ -34,10 +33,9 @@ module.exports = (samjs) ->
         samjs.io.of("/configure").removeAllListeners "connection"
       deleteResponder = responder("installation","configure")
       samjs.io.emit "configure"
-      debug "emitting configure"
-      samjs.emit "configure"
+      samjs.lifecycle.configure()
       return new samjs.Promise (resolve) ->
-        samjs.once "configured", ->
+        samjs.state.onceConfigured.then ->
           debug "configured"
           for dispose in disposes
             dispose()
@@ -78,7 +76,7 @@ module.exports = (samjs) ->
             samjs.state.ifConfigured(config.name)
               .then () ->
                 debug "config installed completely"
-                samjs.emit "configured"
+                samjs.lifecycle.configured()
             return success:true, content:response
           .catch (err)     -> success:false, content:err?.message
           .then (response) ->
@@ -91,8 +89,7 @@ module.exports = (samjs) ->
 
 
     install: ->
-      debug "emitting beforeInstall"
-      samjs.emit "beforeInstall"
+      samjs.lifecycle.beforeInstall()
       debug "exposing install"
       disposes = []
       for name, model of samjs.models
@@ -108,18 +105,14 @@ module.exports = (samjs) ->
       deleteResponder = responder("installation","install")
       samjs.io.of("/configure").emit "done"
       samjs.io.emit "install"
-      debug "emitting install"
-      samjs.emit "install"
+      samjs.lifecycle.install()
       return new samjs.Promise (resolve) ->
-        samjs.on "checkInstalled", ->
-          if samjs.state.ifInstalled()
-            debug "emitting installed"
-            samjs.emit "installed"
-            for dispose in disposes
-              dispose()
-            deleteResponder()
-            samjs.io.of("/install").emit "done"
-            resolve()
+        samjs.state.onceInstalled.then ->
+          for dispose in disposes
+            dispose()
+          deleteResponder()
+          samjs.io.of("/install").emit "done"
+          resolve()
     finish: ->
       responder("installation",false)
       samjs.io.of("/configure").emit "done"

@@ -23,12 +23,15 @@ init = ->
         socket.removeAllListeners()
       samjs.io.of("/").removeAllListeners()
       samjs.io = null
+    samjs.lifecycle.reset()
     samjs.removeAllListeners()
+    samjs.state.reset()
     samjs.expose.plugins()
     return samjs
 
   require("./helper")(samjs)
   require("./state")(samjs)
+  require("./interfaces")(samjs)
   samjs.expose = {
     plugins: ->
       samjs.debug.core("exposing plugins")

@@ -1,5 +1,6 @@
 # out: ../lib/shutdown.js
 module.exports = (samjs) -> samjs.shutdown = ->
+  samjs.lifecycle.beforeShutdown()
   ioClosed = new samjs.Promise (resolve) ->
     samjs.io.httpServer.on "close", ->
       samjs.debug.core("server closed")
@@ -11,4 +12,7 @@ module.exports = (samjs) -> samjs.shutdown = ->
   for plugin in samjs._plugins
     if plugin.shutdown? and samjs.util.isFunction plugin.shutdown
       required.push plugin.shutdown()
-  return samjs.Promise.all(required)
+  return samjs.Promise.all(required).then (args...) ->
+    samjs.lifecycle.shutdown()
+    return args
+  

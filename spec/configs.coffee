@@ -131,7 +131,7 @@ describe "samjs", ->
       start = (plugins) ->
         samjs.plugins(plugins).options({config:testConfigFile})
       it "should take plugin defaults",->
-        start(configs: defaults: [{name:"test"},{name:"test2",isRequired:true}])
+        start(configs: [{name:"test"},{name:"test2",isRequired:true}])
         .configs({name:"test2",isRequired:false})
         should.exist samjs.configs["test"]
         samjs.configs["test"].should.be.a("object")
@@ -140,18 +140,19 @@ describe "samjs", ->
         samjs.configs["test2"].should.be.a("object")
         samjs.configs["test2"].class.should.equal("Config")
         samjs.configs["test2"].isRequired.should.be.false
-      it "should take plugin mutator",->
-        start({configs: {mutator: (options) ->
+      it "should take plugin beforeCreate hook",->
+        start(hooks: configs: beforeCreate: [(options) ->
           options.isRequired = true
           return options
-        }}).configs({name:"test"},{name:"test2",isRequired:false})
+        ]).configs({name:"test"},{name:"test2",isRequired:false})
         samjs.configs["test"].isRequired.should.be.true
         samjs.configs["test2"].isRequired.should.be.true
-      it "should take plugin getter", (done) ->
-        start({configs: {get: (val) ->
-          if val != true
+      it "should take plugin beforeGet hook", (done) ->
+        start(hooks: configs: beforeGet: [({client}) ->
+          if client != true
             throw new Error "not true"
-        }}).configs({name:"getter",read:true})
+          return client:client
+        ]).configs({name:"getter",read:true})
         samjs.configs["getter"].get(true)
           .then (result) ->
             should.not.exist(result)
@@ -161,35 +162,35 @@ describe "samjs", ->
           .catch (e) ->
             e.message.should.equal "not true"
             done()
-      it "should take plugin setter", (done) ->
-        start({configs: {set: (val, data) ->
-          if val != true
+      it "should take plugin beforeSet hook", (done) ->
+        start(hooks: configs: beforeSet: [({client,data}) ->
+          if client != true
             throw new Error "not true"
-          return data
-        }}).configs({name:"setter",write:true})
-        samjs.configs["setter"].set(true,"value")
+          return client:client, data:data
+        ]).configs({name:"setter",write:true})
+        samjs.configs["setter"].set("value", true)
           .then ->
             samjs.configs["setter"]._get()
           .then (result) ->
             result.should.equal "value"
           .catch done
           .then ->
-            samjs.configs["setter"].set(false)
+            samjs.configs["setter"].set("value", false)
           .catch (e) ->
             e.message.should.equal "not true"
             done()
-      it "should take plugin tester", (done) ->
-        start({configs: {test: (val,data) ->
-          if val != true
+      it "should take plugin beforeTest hook", (done) ->
+        start(hooks: configs: beforeTest: [({client,data}) ->
+          if client != true
             throw new Error "not true"
-          return data
-        }}).configs({name:"tester",write:true})
-        samjs.configs["tester"].test(true, "value")
+          return client:client,data:data
+        ]).configs({name:"tester",write:true})
+        samjs.configs["tester"].test("value", true)
           .then (result) ->
             result.should.equal "value"
           .catch done
           .then ->
-            samjs.configs["tester"].test(false)
+            samjs.configs["tester"].test("value", false)
           .catch (e) ->
             e.message.should.equal "not true"
             done()

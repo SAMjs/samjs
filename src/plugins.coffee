@@ -23,12 +23,7 @@ module.exports = (samjs) ->
     validateHelper(plugin, "name", "String")
     validateHelper(plugin, "obj", "Object")
     validateHelper(plugin, "options", "Object")
-    validateHelper(plugin, "configs", "Object")
-    validateHelper(plugin, "options.defaults", "Object")
-    validateHelper(plugin, "configs.mutator", "Function")
-    validateHelper(plugin, "configs.gets", "Function")
-    validateHelper(plugin, "configs.sets", "Function")
-    validateHelper(plugin, "configs.tests", "Function")
+    validateHelper(plugin, "configs", "Array")
     validateHelper(plugin, "models", "Object")
     validateHelper(plugin, "models.defaults", "Object")
     if plugin.models?.defaults?
@@ -52,8 +47,7 @@ module.exports = (samjs) ->
     samjs.helper.inOrder("plugins")
     plugins = samjs.helper.parseSplats(plugins)
     samjs._plugins = []
-    samjs.debug.plugins("emitting 'beforePlugins'")
-    samjs.emit "beforePlugins", plugins
+    samjs.lifecycle.beforePlugins plugins
     samjs.debug.plugins("processing")
     for plugin in plugins
       if samjs.util.isFunction plugin
@@ -69,8 +63,7 @@ module.exports = (samjs) ->
           unless model.isExisting?
             throw new Error("default models need 'isExisting' function'")
       samjs._plugins.push plugin
-    samjs.debug.options("emitting 'plugins'")
-    samjs.emit "plugins", samjs._plugins
+    samjs.lifecycle.plugins samjs._plugins
     samjs.debug.plugins("finished")
     samjs.expose.options()
     return samjs

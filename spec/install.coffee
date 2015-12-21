@@ -35,18 +35,6 @@ describe "samjs", ->
     install = null
     promised = {}
     before (done) ->
-      promised.configure = new samjs.Promise (resolve) ->
-        samjs.once "configure", ->
-          resolve()
-      promised.configured = new samjs.Promise (resolve) ->
-        samjs.once "configured", ->
-          resolve()
-      promised.install = new samjs.Promise (resolve) ->
-        samjs.once "install", ->
-          resolve()
-      promised.installed = new samjs.Promise (resolve) ->
-        samjs.once "installed", ->
-          resolve()
       samjs.plugins().options({config:testConfigFile}).configs({
         name: "testable"
         isRequired: true
@@ -63,7 +51,7 @@ describe "samjs", ->
               if request.content
                 @value = request.content
                 response = success:true, content:request.content
-                samjs.emit "checkInstalled"
+                samjs.state.checkInstalled()
               else
                 response = success:false, content: "wrongModel"
               socket.emit "set.#{request.token}", response
@@ -79,9 +67,8 @@ describe "samjs", ->
     after (done) ->
       samjs.shutdown().then -> done()
 
-    it "should emit installConfig on server-side", (done) ->
-      promised.configure
-      .then done
+    it "should trigger onceConfigure on server-side", (done) ->
+      samjs.state.onceConfigure.then -> done()
 
     it "should be connectable by client", (done) ->
       client = connect()
@@ -123,12 +110,10 @@ describe "samjs", ->
       .catch done
 
     it "should be configured server-side", (done) ->
-      samjs.state.ifConfigured()
-      .then -> done()
-      .catch done
+      samjs.state.ifConfigured().then -> done()
 
     it "should emit configured and install server-side", (done) ->
-      samjs.Promise.all([promised.configured,promised.install])
+      samjs.Promise.all([samjs.state.onceConfigured,samjs.state.onceInstall])
       .return done()
 
     it "should be configured client-side", (done) ->
@@ -164,15 +149,13 @@ describe "samjs", ->
       .then -> done()
       .catch done
 
-    it "should emit userInstalled server-side", (done) ->
-      promised.installed
-      .then done
-      .catch done
+    it "should trigger onceInstalled server-side", (done) ->
+      samjs.state.onceInstalled.then -> done()
 
     it "should be installed client-side", (done) ->
       install.onceInstalled
       .then done
       .catch done
 
-    it "should be started up after install", (done) ->
-      samjs.started.then -> done()
+    it "should trigger onceStarted after install", (done) ->
+      samjs.state.onceStarted.then -> done()

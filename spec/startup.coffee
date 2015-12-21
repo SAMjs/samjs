@@ -11,8 +11,8 @@ describe "samjs", ->
   describe "startup", ->
     it "should start installation if required - tested in install"
     it "should startup", (done) ->
-      samjs.plugins().options().configs().models().startup().started
-      .then -> done()
+      samjs.plugins().options().configs().models().startup()
+      samjs.state.onceStarted.then -> done()
     it "should start plugins ", (done) ->
       samjs.plugins({startup: done}).options().configs().models().startup()
     it "should expose a config - tested in configInterface"

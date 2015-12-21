@@ -15,29 +15,10 @@ module.exports = (samjs) ->
       samjs.helper.merge(dest:@,src:options,overwrite:true)
       @class = "Model"
       @isRequired ?= false
-      @removeInterface ?= {}
-    exposeInterfaces: (name) =>
-      exposeInterface = (itf, name) ->
-        samjs.io.of("/#{name}").on "connection", itf
-        return -> samjs.io.of("/#{name}").removeListener "connection", itf
-      exposeInterfaces = (interfaces, name) =>
-        @removeInterface[name] ?= []
-        if samjs.util.isArray interfaces
-          for itf in interfaces
-            @removeInterface[name].push exposeInterface(itf.bind(@), name)
-        else
-          @removeInterface[name].push exposeInterface(interfaces.bind(@), name)
-      if name
-        exposeInterfaces(@interfaces[name], name)
-      else
-        for name, interfaces of @interfaces
-          exposeInterfaces(interfaces, name)
-      return @
   samjs.models = (models...) ->
     samjs.helper.inOrder("models")
     models = samjs.helper.parseSplats(models)
-    samjs.debug.models("emitting 'beforeModels'")
-    samjs.emit "beforeModels", models
+    samjs.lifecycle.beforeModels models
     samjs.debug.models("processing")
     createModel = (model) ->
       if model?
@@ -55,8 +36,7 @@ module.exports = (samjs) ->
         for model in plugin.models
           unless model.isExisting(models) or samjs.models[model.name]?
             createModel(model)
-    samjs.debug.models("emitting 'models'")
-    samjs.emit "models", models
+    samjs.lifecycle.models models
     samjs.debug.models("finished")
     samjs.expose.startup()
     return samjs

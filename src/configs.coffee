@@ -2,19 +2,73 @@
 
 module.exports = (samjs) ->
   fs = samjs.Promise.promisifyAll(require("fs"))
+  hooknames = ["afterCreate","afterGet","afterSet","afterTest",
+    "beforeCreate","beforeGet","beforeSet","beforeTest","before_Set"]
+  syncHooks = ["afterCreate","beforeCreate"]
+  initiateHooks = (config) ->
+    config._hooks = {}
+    hooknames.forEach (hookname) ->
+      if syncHooks.indexOf(hookname) > -1
+        config._hooks[hookname] = (arg) ->
+          for hook in config._hooks[hookname]._hooks
+            arg = hook.bind(config)(arg)
+          return arg
+      else
+        config._hooks[hookname] = (args...) ->
+          promise = samjs.Promise.resolve.apply(null,args)
+          for hook in config._hooks[hookname]._hooks
+            promise = promise.then hook.bind(config)
+          return promise
+      config._hooks[hookname]._hooks = []
+
   class Config
     constructor: (options) ->
       if not options or not options.name
         throw new Error("config needs 'name' property")
+      @name = options.name
+      delete options.name
+      @class = "Config"
+      initiateHooks(@)
+      for plugin in samjs._plugins
+        if plugin.hooks?.configs?
+          for hookname, hooks of plugin.hooks.configs
+            @addHook(hookname,hooks)
+      options = @_hooks.beforeCreate options
       if options.test
         @_test = options.test
         delete options.test
       else
-        @_test= (data) -> samjs.Promise.resolve(data)
+        if options.isRequired
+          @_test = (data) -> new samjs.Promise (resolve, reject) ->
+            if data?
+              resolve(data)
+            else
+              reject(data)
+        else
+          @_test = (data) -> samjs.Promise.resolve(data)
+      for hookname,hooks of options.hooks
+        @addHook(hookname,hooks)
+      delete options.hooks
       samjs.helper.merge(dest:@,src:options,overwrite:true)
-      @class = "Config"
-      @isRequired ?= false
 
+      @isRequired ?= false
+      @_hooks.afterCreate @
+      return @
+    addHook: (name, hook) =>
+      if hooknames.indexOf(name) > -1
+        isPush = name.indexOf("after") == -1
+        add = (hook) =>
+          if samjs.util.isFunction(hook)
+            if isPush
+              @_hooks[name]._hooks.push(hook)
+            else
+              @_hooks[name]._hooks.unshift(hook)
+        if samjs.util.isArray(hook)
+          add(singleHook) for singleHook in hook
+        else
+          add(hook)
+      else
+        throw new Error("invalid hook name:#{name}")
     load: (reader) =>
       @loaded = reader
         .then (data) =>
@@ -29,92 +83,68 @@ module.exports = (samjs) ->
         return @loaded
       else
         return samjs.Promise.reject new Error "config #{@name} not set"
-
     _get: () =>
       return @_getBare()
         .catch () ->
           return null
+    get: (client) =>
+      return samjs.Promise.reject(new Error("no permission")) unless @read
+      return @_hooks.beforeGet(client: client)
+        .then @_get
+        .then @_hooks.afterGet
 
-    _set: (newContent) =>
-      return @_test(newContent)
-        .then =>
+    _set: (newData) =>
+      return @_test(newData)
+        .then => @_hooks.before_Set(data:newData)
+        .then ({data}) =>
+          newData = data
           return fs.readFileAsync samjs.options.config
-          .catch -> return "{}"
-          .then JSON.parse
-          .catch -> return {}
-          .then (data) =>
-            data[@name] = newContent
-            @data = newContent
-            return fs.writeFileAsync samjs.options.config, JSON.stringify(data)
-        .then =>
-          samjs.emit "#{@name}.updated", newContent
-          return newContent
+            .catch -> return "{}"
+            .then JSON.parse
+            .catch -> return {}
+            .then (data) =>
+              data[@name] = newData
+              @data = newData
+              return fs.writeFileAsync samjs.options.config, JSON.stringify(data)
+
+    set: (data, client) =>
+      return samjs.Promise.reject(new Error("no permission")) unless @write
+      return @_hooks.beforeSet(data: data, client: client)
+        .then ({data}) => @_set(data)
+        .then @_hooks.afterSet
+
+    test: (data, client) ->
+      return samjs.Promise.reject(new Error("no permission")) unless @write
+      return @_hooks.beforeTest(data: data, client: client)
+        .then ({data}) => @_test(data)
+        .then @_hooks.afterSet
+
   samjs.configs = (configs...) ->
     samjs.helper.inOrder("configs")
     configs = samjs.helper.parseSplats(configs)
-    samjs.debug.configs("emitting 'beforeConfigs'")
-    samjs.emit "beforeConfigs", configs
+    samjs.lifecycle.beforeConfigs configs
     samjs.debug.configs("processing")
-    mutators = []
     defaults = []
-    gets = []
-    sets = []
-    tests = []
     for plugin in samjs._plugins
       if plugin.configs?
         plugin.debug("got configs")
-        if plugin.configs.defaults?
-          if samjs.util.isFunction plugin.configs.defaults
-            defaults = defaults.concat plugin.configs.defaults(samjs)
-          else
-            defaults = defaults.concat plugin.configs.defaults
-        mutators.push plugin.configs.mutator if plugin.configs.mutator?
-        tests.push plugin.configs.test if plugin.configs.test?
-        gets.push plugin.configs.get if plugin.configs.get?
-        sets.push plugin.configs.set if plugin.configs.set?
+        if samjs.util.isFunction plugin.configs
+          defaults = defaults.concat plugin.configs(samjs)
+        else
+          defaults = defaults.concat plugin.configs
     reader = fs.readFileAsync(samjs.options.config)
       .then JSON.parse
       .catch samjs.debug.configs
     createConfig = (options) ->
-      for mutator in mutators
-        options = mutator(options)
       config = new Config(options)
-      config.load(reader).catch ->
-      config.set = ((data, client) ->
-        return samjs.Promise.reject(new Error("no permission")) unless @write
-        for setter in sets
-          try
-            data = setter.bind(@)(data,client)
-          catch e
-            return samjs.Promise.reject(e)
-        return @._set(data)
-        ).bind(config)
-      config.test = ((data, client) ->
-        return samjs.Promise.reject(new Error("no permission")) unless @write
-        for tester in tests
-          try
-            data = tester.bind(@)(data,client)
-          catch e
-            return samjs.Promise.reject(e)
-        return @._test(data)
-        ).bind(config)
-      config.get = ((client) ->
-        return samjs.Promise.reject(new Error("no permission")) unless @read
-        for getter in gets
-          try
-            getter.bind(@)(client)
-          catch e
-            return samjs.Promise.reject(e)
-        return @._get()
-        ).bind(config)
+      config.load(reader).catch -> null
       samjs.debug.configs "setting configs.#{config.name}"
       samjs.configs[config.name] = config
     for config in configs
       createConfig(config)
     for def in defaults
       createConfig(def) unless samjs.configs[def.name]?
-    samjs.debug.configs("emitting 'configs'")
-    samjs.emit "configs", configs
+    samjs.lifecycle.configs configs
     samjs.debug.configs("finished")
     samjs.expose.models()
     return samjs
