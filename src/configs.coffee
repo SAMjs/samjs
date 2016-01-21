@@ -2,24 +2,9 @@
 
 module.exports = (samjs) ->
   fs = samjs.Promise.promisifyAll(require("fs"))
-  hooknames = ["afterCreate","afterGet","afterSet","afterTest",
-    "beforeCreate","beforeGet","beforeSet","beforeTest","before_Set"]
+  asyncHooks = ["afterGet","afterSet","afterTest","after_Get"
+    "beforeGet","beforeSet","beforeTest","before_Set"]
   syncHooks = ["afterCreate","beforeCreate"]
-  initiateHooks = (config) ->
-    config._hooks = {}
-    hooknames.forEach (hookname) ->
-      if syncHooks.indexOf(hookname) > -1
-        config._hooks[hookname] = (arg) ->
-          for hook in config._hooks[hookname]._hooks
-            arg = hook.bind(config)(arg)
-          return arg
-      else
-        config._hooks[hookname] = (args...) ->
-          promise = samjs.Promise.resolve.apply(null,args)
-          for hook in config._hooks[hookname]._hooks
-            promise = promise.then hook.bind(config)
-          return promise
-      config._hooks[hookname]._hooks = []
 
   class Config
     constructor: (options) ->
@@ -28,7 +13,7 @@ module.exports = (samjs) ->
       @name = options.name
       delete options.name
       @class = "Config"
-      initiateHooks(@)
+      samjs.helper.initiateHooks(@,asyncHooks,syncHooks)
       for plugin in samjs._plugins
         if plugin.hooks?.configs?
           for hookname, hooks of plugin.hooks.configs
@@ -54,21 +39,6 @@ module.exports = (samjs) ->
       @isRequired ?= false
       @_hooks.afterCreate @
       return @
-    addHook: (name, hook) =>
-      if hooknames.indexOf(name) > -1
-        isPush = name.indexOf("after") == -1
-        add = (hook) =>
-          if samjs.util.isFunction(hook)
-            if isPush
-              @_hooks[name]._hooks.push(hook)
-            else
-              @_hooks[name]._hooks.unshift(hook)
-        if samjs.util.isArray(hook)
-          add(singleHook) for singleHook in hook
-        else
-          add(hook)
-      else
-        throw new Error("invalid hook name:#{name}")
     load: (reader) =>
       @loaded = reader
         .then (data) =>
@@ -87,6 +57,7 @@ module.exports = (samjs) ->
       return @_getBare()
         .catch () ->
           return null
+        .then @_hooks.after_Get
     get: (client) =>
       return samjs.Promise.reject(new Error("no permission")) unless @read
       return @_hooks.beforeGet(client: client)
@@ -94,8 +65,8 @@ module.exports = (samjs) ->
         .then @_hooks.afterGet
 
     _set: (newData) =>
-      return @_test(newData)
-        .then => @_hooks.before_Set(data:newData)
+      return @_test(newData, @data)
+        .then => @_hooks.before_Set(data:newData, oldData: @data)
         .then ({data}) =>
           newData = data
           return fs.readFileAsync samjs.options.config
@@ -106,6 +77,7 @@ module.exports = (samjs) ->
               data[@name] = newData
               @data = newData
               return fs.writeFileAsync samjs.options.config, JSON.stringify(data)
+        .then @_hooks.after_Set
 
     set: (data, client) =>
       return samjs.Promise.reject(new Error("no permission")) unless @write
@@ -116,8 +88,8 @@ module.exports = (samjs) ->
     test: (data, client) ->
       return samjs.Promise.reject(new Error("no permission")) unless @write
       return @_hooks.beforeTest(data: data, client: client)
-        .then ({data}) => @_test(data)
-        .then @_hooks.afterSet
+        .then ({data}) => @_test(data, @data)
+        .then @_hooks.afterTest
 
   samjs.configs = (configs...) ->
     samjs.helper.inOrder("configs")

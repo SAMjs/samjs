@@ -22,7 +22,7 @@ module.exports = (samjs) -> samjs.startup = (server) ->
     required = []
     for plugin in samjs._plugins
       if plugin.startup? and samjs.util.isFunction plugin.startup
-        required.push plugin.startup()
+        required.push plugin.startup.bind(plugin)()
     samjs.Promise.all required
   .then -> samjs.debug.startup "plugins started"
   .then ->

@@ -55,3 +55,40 @@ module.exports = (samjs) ->
           return obj[0]
         return obj
       return []
+    initiateHooks: (obj,asyncHooks,syncHooks) ->
+      obj._hooks = {}
+      obj.addHook = (name, hook, after) ->
+        if obj._hooks[name]?
+          after ?= name.indexOf("after") > -1
+          add = (hook) ->
+            hooks = obj._hooks[name]._hooks
+            if samjs.util.isFunction(hook)
+              if after
+                hooks.push(hook)
+              else
+                hooks.unshift(hook)
+            return ->
+              i = hooks.indexOf(hook)
+              hooks.splice(i,1) if i > -1
+          removers = []
+          if samjs.util.isArray(hook)
+            removers.push(add(singleHook)) for singleHook in hook
+          else
+            removers.push(add(hook))
+          return ->
+            remover() for remover in removers
+        else
+          throw new Error("invalid hook name:#{name}")
+      syncHooks.forEach (hookname) ->
+        obj._hooks[hookname] = (arg) ->
+          for hook in obj._hooks[hookname]._hooks
+            arg = hook.bind(obj)(arg)
+          return arg
+        obj._hooks[hookname]._hooks = []
+      asyncHooks.forEach (hookname) ->
+        obj._hooks[hookname] = (args...) ->
+          promise = samjs.Promise.resolve.apply(null,args)
+          for hook in obj._hooks[hookname]._hooks
+            promise = promise.then hook.bind(obj)
+          return promise
+        obj._hooks[hookname]._hooks = []

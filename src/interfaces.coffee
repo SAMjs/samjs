@@ -55,27 +55,40 @@ module.exports = (samjs) ->
         @_closers[name] ?= []
         if samjs.util.isArray interfaces
           for itf in interfaces
-            @_closers[name].push exposeInterface(itf.bind(@), name)
+            @_closers[name].push exposeInterface(itf, name)
         else
-          @_closers[name].push exposeInterface(interfaces.bind(@), name)
+          @_closers[name].push exposeInterface(interfaces, name)
       if name
         if @_interfaces[name]?
           exposeInterfaces(@_interfaces[name], name)
         else
           for modelname, model of samjs.models
-            if model.interfaces[name]?
+            if samjs.util.isArray(model.interfaces)
+              if model.name == name
+                exposeInterfaces(model.interfaces,name)
+            else if model.interfaces[name]?
               exposeInterfaces(model.interfaces[name], name)
           for plugin in samjs._plugins
-            if plugin.interfaces?[name]?
-              exposeInterfaces(plugin.interfaces[name], name)
+            if plugin.interfaces?
+              if samjs.util.isArray(plugin.interfaces)
+                if plugin.name == name
+                  exposeInterfaces(plugin.interfaces,name)
+              else if plugin.interfaces[name]?
+                exposeInterfaces(plugin.interfaces[name], name)
       else
         for name, interfaces of @_interfaces
           exposeInterfaces(interfaces, name)
         for modelname, model of samjs.models
-          for name, interfaces of model.interfaces
-            exposeInterfaces(interfaces, name)
+          if samjs.util.isArray(model.interfaces)
+            exposeInterfaces(model.interfaces, modelname)
+          else
+            for name, interfaces of model.interfaces
+              exposeInterfaces(interfaces, name)
         for plugin in samjs._plugins
           if plugin.interfaces?
-            for name, interfaces of plugin.interfaces
-              exposeInterfaces(interfaces, name)
+            if samjs.util.isArray(plugin.interfaces)
+              exposeInterfaces(plugin.interfaces, plugin.name)
+            else
+              for name, interfaces of plugin.interfaces
+                exposeInterfaces(interfaces, name)
       return @

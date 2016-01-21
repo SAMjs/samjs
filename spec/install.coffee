@@ -55,6 +55,7 @@ describe "samjs", ->
               else
                 response = success:false, content: "wrongModel"
               socket.emit "set.#{request.token}", response
+          return -> socket.removeAllListeners "set"
         }).startup().io.listen(port)
       connect = reload("samjs-client")({
         url: url
