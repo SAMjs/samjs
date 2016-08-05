@@ -14,16 +14,16 @@ Browser client: [samjs-client](https://github.com/SAMjs/samjs-client)
 - multiple databases simultaniously
 
 ## data modeling
-- options
+- **options**  
 source-code-based / kept-in-memory data.
 Used to set low-level options of the app, can only be changed by restarting.
 Not accessible due websockets.
 
-- configs
+- **configs**  
 file-based / kept-in-memory data
 For structural data specific for your app, should be only changed sparsely by few persons.
 
-- models
+- **models**  
 Can be custom in-memory models or plugable database-based models.
 Should be used for all data which changes on regular basis.
 
@@ -34,7 +34,7 @@ npm install --save-dev samjs-client
 ```
 #### Simple example with koa server
 
-```coffee
+```js
 samjs = require "samjs"
 koa = require("koa")()
 
@@ -51,22 +51,26 @@ server.listen(3000)
 #to close
 #samjs.shutdown()
 
-# in browser with webpack
+// in browser with e.g. webpack
 samjs = require("samjs-client")()
-samjs.config.set "item", "value"
-.then ->
-  #success
-.catch ->
-  #failed
-
-# some other client  
-samjs.config.on "item", -> #item changed
-  samjs.config.get "item"
-  .then (response) ->
-    response == "value" # true
-  .catch ->
-    #failed
-
+samjs.config.set("item", "value")
+.then(function(){
+  //success
+})
+.catch(function(){
+  //failure
+})
+// some other client  
+samjs.config.on("item",function(){
+  //item changed
+  samjs.config.get("item")
+  .then(function(response){
+    response == "value" // true
+  })
+  .catch(function(){
+    //failure
+  })
+}
 ```
 
 ## Available plugins
@@ -75,10 +79,11 @@ Name | Description
 ---: | ---
 [samjs-auth](https://github.com/SAMjs/samjs-auth) | adds a configs-based user management, authentification mechanismen and authorization system for configs.
 [samjs-files](https://github.com/SAMjs/samjs-files) | adds a model and interface for file/folder interaction
-[samjs-files-auth](https://github.com/SAMjs/samjs-files-auth) | adds authorization system for samjs-files
+[samjs-files-auth](https://github.com/SAMjs/samjs-files-auth) | adds authorization for samjs-files
 [samjs-mongo](https://github.com/SAMjs/samjs-mongo) | adds a model and interface for mongodb interaction
-[samjs-mongo-auth](https://github.com/SAMjs/samjs-mongo-auth) | adds authorization system for samjs-mongo
+[samjs-mongo-auth](https://github.com/SAMjs/samjs-mongo-auth) | adds authorization for samjs-mongo
 [samjs-auth-mongo](https://github.com/SAMjs/samjs-auth-mongo) | moves user management to mongodb. Adds groups.
+[samjs-mongo-isOwner](https://github.com/SAMjs/samjs-mongo-isOwner) | Plugin for managing user owned documents in samjs-mongo.
 
 ## docs
 Samjs is configured by several functions which must be called in order.

@@ -1,1 +1,1 @@
-{"testable":"rightValue"}
+{"mongoURI":"mongodb://localhost/test","users":[{"name":"root","pwd":"$2a$10$o.69dF7wNr43Ldn7GeVIquAN7hsMlFwdRxBMnxwhZ2C5hqFNQUgWu","hashed":true},{"name":"user","pwd":"$2a$10$kwTUTpVPa0aKBd6hW0etSOfqKiCLGWM4trUrpsfy.a/Vm5D34Verq","hashed":true}]}
