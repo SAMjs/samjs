@@ -79,7 +79,7 @@ describe "samjs", ->
       .catch done
 
     it "should be in config mode client-side", (done) ->
-      install.onceInConfigMode
+      install.onceConfigure
       .then (nsp) ->
         nsp.should.equal "/configure"
         return install.isInConfigMode()
@@ -88,21 +88,21 @@ describe "samjs", ->
         done()
 
     it "should reject a false config", (done) ->
-      install.onceInConfigMode
+      install.onceConfigure
       .return install.test("testable","wrongValue")
       .catch (e) ->
         e.message.should.equal "wrongConfig"
         done()
 
     it "should not save a false config", (done) ->
-      install.onceInConfigMode
+      install.onceConfigure
       .return install.set("testable","wrongValue")
       .catch (e) ->
         e.message.should.equal "wrongConfig"
         done()
 
     it "should save a proper config", (done) ->
-      install.onceInConfigMode
+      install.onceConfigure
       .return install.set("testable","rightValue")
       .then samjs.configs["testable"]._get
       .then (str) ->
@@ -123,7 +123,7 @@ describe "samjs", ->
       .catch done
 
     it "should be in install mode client-side", (done) ->
-      install.onceInInstallMode
+      install.onceInstall
       .then (nsp) ->
         nsp.should.equal "/install"
         return install.isInInstallMode()

@@ -6,7 +6,8 @@ module.exports = (samjs) ->
       if src? and samjs.util.isObject(src)
         overwrite ?= false
         clone ?= false
-        for k,v of src
+        for k in Object.getOwnPropertyNames(src)
+          v = src[k]
           if samjs.util.isArray(v)
             if dest[k]? and not overwrite
               tmp = @clone(v).filter (item) -> dest[k].indexOf(item) < 0
@@ -92,3 +93,10 @@ module.exports = (samjs) ->
             promise = promise.then hook.bind(obj)
           return promise
         obj._hooks[hookname]._hooks = []
+    addHook: (obj,name,hook) ->
+      if samjs.util.isArray(obj[name])
+        obj[name].push hook
+      else if samjs.util.isFunction(obj[name])
+        obj[name] = [obj[name],hook]
+      else
+        obj[name] = [hook]

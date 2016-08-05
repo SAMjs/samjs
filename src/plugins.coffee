@@ -1,16 +1,6 @@
 # out: ../lib/plugins.js
 module.exports = (samjs) ->
-  validateHelper = (plugin, prop, type) ->
-    path = prop.split(".")
-    obj = plugin
-    for p in path
-      obj = obj[p]
-      return unless obj?
-    unless samjs.util["is"+type] obj
-      e = "plugin.#{prop} must be a #{type}"
-      if plugin.name
-        e += " - plugin: #{plugin.name}"
-      throw new Error e
+
   validate = (plugin) ->
     unless samjs.util.isObject(plugin)
       throw new Error "plugin needs to be an object or function"
@@ -19,13 +9,23 @@ module.exports = (samjs) ->
         plugin.debug = samjs.debug(plugin.name)
       else
         plugin.debug = () ->
-    validateHelper(plugin, "debug", "Function")
-    validateHelper(plugin, "name", "String")
-    validateHelper(plugin, "obj", "Object")
-    validateHelper(plugin, "options", "Object")
-    validateHelper(plugin, "configs", "Array")
-    validateHelper(plugin, "models", "Object")
-    validateHelper(plugin, "models.defaults", "Object")
+    validateHelper = (prop, type) ->
+      path = prop.split(".")
+      obj = plugin
+      for p in path
+        obj = obj[p]
+        return unless obj?
+      unless samjs.util["is"+type] obj
+        e = "plugin.#{prop} must be a #{type}"
+        if plugin.name
+          e += " - plugin: #{plugin.name}"
+        throw new Error e
+    validateHelper("debug", "Function")
+    validateHelper("name", "String")
+    validateHelper("options", "Object")
+    validateHelper("configs", "Array")
+    validateHelper("models", "Object")
+    validateHelper("models.defaults", "Object")
     if plugin.models?.defaults?
       name = ""
       if plugin?.name?
@@ -39,8 +39,8 @@ module.exports = (samjs) ->
           throw new Error "default model #{model.name} need a 'isExisting' function"+name
         unless samjs.util.isFunction model.isExisting
           throw new Error "default models 'isExisting' needs to be a function"+name
-    validateHelper(plugin, "startup", "Function")
-    validateHelper(plugin, "shutdown", "Function")
+    validateHelper("startup", "Function")
+    validateHelper("shutdown", "Function")
 
 
   samjs.plugins = (plugins...) ->
@@ -55,9 +55,9 @@ module.exports = (samjs) ->
         unless samjs.util.isObject plugin
           throw new Error "generator function for plugin should return an object"
       validate plugin
-      if plugin.name? and plugin.obj?
+      if plugin.name?
         plugin.debug("exposing #{plugin.name}")
-        samjs[plugin.name] = plugin.obj
+        samjs[plugin.name] = plugin
       if plugin.models?.defaults?
         for model in plugin.models.defaults
           unless model.isExisting?

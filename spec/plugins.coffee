@@ -12,8 +12,8 @@ describe "samjs", ->
     it "should work with arrays", ->
       samjs.plugins [{},{}]
       samjs._plugins.length.should.equal 2
-    it "should expose objects", ->
-      samjs.plugins name:"somePlugin",obj: someKey: "someValue"
+    it "should expose plugin when name is given", ->
+      samjs.plugins name:"somePlugin", someKey: "someValue"
       should.exist samjs.somePlugin
       should.exist samjs.somePlugin.someKey
       samjs.somePlugin.someKey.should.equal "someValue"

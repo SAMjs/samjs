@@ -2,7 +2,7 @@
 
 module.exports = (samjs) ->
   fs = samjs.Promise.promisifyAll(require("fs"))
-  asyncHooks = ["afterGet","afterSet","afterTest","after_Get"
+  asyncHooks = ["afterGet","afterSet","afterTest","after_Get","after_Set"
     "beforeGet","beforeSet","beforeTest","before_Set"]
   syncHooks = ["afterCreate","beforeCreate"]
 
@@ -65,8 +65,9 @@ module.exports = (samjs) ->
         .then @_hooks.afterGet
 
     _set: (newData) =>
-      return @_test(newData, @data)
-        .then => @_hooks.before_Set(data:newData, oldData: @data)
+      oldData = @data
+      return @_test(newData, oldData)
+        .then => @_hooks.before_Set(data:newData, oldData: oldData)
         .then ({data}) =>
           newData = data
           return fs.readFileAsync samjs.options.config
@@ -76,8 +77,8 @@ module.exports = (samjs) ->
             .then (data) =>
               data[@name] = newData
               @data = newData
-              return fs.writeFileAsync samjs.options.config, JSON.stringify(data)
-        .then @_hooks.after_Set
+              fs.writeFileAsync samjs.options.config, JSON.stringify(data)
+        .then => @_hooks.after_Set(data:newData, oldData: oldData)
 
     set: (data, client) =>
       return samjs.Promise.reject(new Error("no permission")) unless @write

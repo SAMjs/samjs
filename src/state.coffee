@@ -49,5 +49,5 @@ module.exports = (samjs) ->
         .catch (e) -> throw new Error "not installed"
     checkInstalled: =>
       @ifInstalled()
-      .then samjs.lifecycle.installed
-      .catch ->
+      .then  -> samjs.lifecycle.installed()
+      .catch (e) -> console.log e.message

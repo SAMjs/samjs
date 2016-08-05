@@ -29,6 +29,12 @@ module.exports = (samjs) ->
         for name,config of samjs.configs
           if config.isRequired
             disposes.push @configListener socket, config
+            if config.installInterface?
+              disposer = config.installInterface.bind(config)(socket)
+              unless samjs.util.isFunction disposer
+                throw new Error "installInterface needs to return a dispose
+                  function model: #{name}"
+              disposes.push disposer
       disposes.push ->
         samjs.io.of("/configure").removeAllListeners "connection"
       deleteResponder = responder("installation","configure")
@@ -74,9 +80,10 @@ module.exports = (samjs) ->
           .then (response) ->
             socket.broadcast.emit "update", config.name
             samjs.state.ifConfigured(config.name)
-              .then () ->
-                debug "config installed completely"
-                samjs.lifecycle.configured()
+            .then ->
+              debug "config installed completely"
+              samjs.lifecycle.configured()
+            .catch ->
             return success:true, content:response
           .catch (err)     -> success:false, content:err?.message
           .then (response) ->
@@ -100,8 +107,8 @@ module.exports = (samjs) ->
               throw new Error "installInterface needs to return a dispose
                 function model: #{name}"
             disposes.push disposer
-          disposes.push ->
-            samjs.io.of("/install").removeAllListeners "connection"
+      disposes.push ->
+        samjs.io.of("/install").removeAllListeners "connection"
       deleteResponder = responder("installation","install")
       samjs.io.of("/configure").emit "done"
       samjs.io.emit "install"
