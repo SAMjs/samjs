@@ -34,19 +34,27 @@ module.exports = (samjs) ->
       @init()
 
     ifConfigured: (exclude) ->
-      required = []
-      for k,v of samjs.configs
-        if v? and v.isRequired and v._test? and v.name != exclude
-          required.push v._getBare().then(v._test)
-      return samjs.Promise.all(required)
-        .catch (e) -> throw new Error "not configured"
+      samjs.configs.isConfigured._get()
+      .then (isConfigured) ->
+        return if isConfigured
+        required = []
+        for k,v of samjs.configs
+          if v? and v.isRequired and v._test? and v.name != exclude
+            required.push v._getBare().then(v._test)
+        return samjs.Promise.all(required)
+          .return samjs.configs.isConfigured._set(true)
+          .catch (e) -> throw new Error "not configured"
     ifInstalled: ->
-      required = []
-      for k,v of samjs.models
-        if v?.isRequired? and v.isRequired and v.test?
-          required.push v.test.bind(v)()
-      return samjs.Promise.all(required)
-        .catch (e) -> throw new Error "not installed"
+      samjs.configs.isInstalled._get()
+      .then (isInstalled) ->
+        return if isInstalled
+        required = []
+        for k,v of samjs.models
+          if v?.isRequired? and v.isRequired and v.test?
+            required.push v.test.bind(v)()
+        return samjs.Promise.all(required)
+          .return samjs.configs.isInstalled._set(true)
+          .catch (e) -> throw new Error "not installed"
     checkInstalled: =>
       @ifInstalled()
       .then  -> samjs.lifecycle.installed()

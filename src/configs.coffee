@@ -97,7 +97,10 @@ module.exports = (samjs) ->
     configs = samjs.helper.parseSplats(configs)
     samjs.lifecycle.beforeConfigs configs
     samjs.debug.configs("processing")
-    defaults = []
+    defaults = [
+      {name:"isInstalled"}
+      {name:"isConfigured"}
+    ]
     for plugin in samjs._plugins
       if plugin.configs?
         plugin.debug("got configs")
