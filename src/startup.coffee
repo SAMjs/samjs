@@ -1,15 +1,16 @@
 # out: ../lib/startup.js
-io = require "socket.io"
+
 module.exports = (samjs) -> samjs.startup = (server) ->
   throw new Error "already started up, shutdown first" if samjs.started?
+  samjs.server = server
   samjs.lifecycle.beforeStartup()
   samjs.debug.startup "processing"
-  if server
+  if samjs.server
     samjs.debug.startup "got server"
-    samjs.io = io(server)
+    samjs.io = samjs.socketio(samjs.server)
   else
     samjs.debug.startup "creating httpServer"
-    samjs.io = io()
+    samjs.io = samjs.socketio()
   samjs.debug.startup "checking installation"
   install = require("./install")(samjs)
   samjs.state.startup = samjs.state.ifConfigured()
@@ -38,6 +39,7 @@ module.exports = (samjs) -> samjs.startup = (server) ->
     samjs.debug.startup "already installed"
   .catch ((e) -> e.message=="not installed"),install.install
   .then install.finish
+  .then samjs.lifecycle.beforeExposing
   .then ->
     samjs.debug.startup "exposing interfaces"
     samjs.interfaces.expose()

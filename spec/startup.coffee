@@ -18,6 +18,7 @@ describe "samjs", ->
       samjs.plugins({startup: done}).options().configs().models().startup()
     it "should expose a config - tested in configInterface"
     it "should expose a model interface for a model", (done) ->
+      @timeout(5000)
       samjs.plugins().options().configs().models({
         name:"test"
         interfaces:[
@@ -27,10 +28,9 @@ describe "samjs", ->
             ]
         }).startup().io.listen(port)
       socket = ioClient(url,
-                      {reconnection:true,autoConnect:false})
+                      {reconnection:false,autoConnect:false})
       socket.once "connect", ->
-        model = socket.io.socket("/test")
-        model.open()
+        model = ioClient.Manager("/test")
         model.once "test", ->
           socket.close()
           samjs.shutdown()

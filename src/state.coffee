@@ -3,10 +3,14 @@
 module.exports = (samjs) ->
   # out: ../lib/hooks.js
   stateNames = ["configure","configured","install","installed","started"]
+  asyncStateNames = ["beforeExposing"]
   lifecycleNames = ["reset","beforeConfigure","beforeInstall"].concat stateNames
   for prop in samjs.order
     lifecycleNames.push prop
     lifecycleNames.push "before"+prop.charAt(0).toUpperCase()+prop.slice(1)
+
+  samjs.helper.initiateHooks(samjs, asyncStateNames, lifecycleNames)
+  lifecycleNames = lifecycleNames.concat(asyncStateNames)
 
   samjs.lifecycle = new class Lifecycle
     constructor: ->
@@ -14,6 +18,7 @@ module.exports = (samjs) ->
         @[name] = (obj) ->
           samjs.debug.lifecycle name
           samjs.emit name, obj
+          return samjs._hooks[name](obj)
 
   samjs.state = new class State
     constructor: ->
@@ -42,7 +47,7 @@ module.exports = (samjs) ->
           if v? and v.isRequired and v._test? and v.name != exclude
             required.push v._getBare().then(v._test)
         return samjs.Promise.all(required)
-          .return samjs.configs.isConfigured._set(true)
+          .then -> samjs.configs.isConfigured._set(true)
           .catch (e) -> throw new Error "not configured"
     ifInstalled: ->
       samjs.configs.isInstalled._get()
@@ -53,9 +58,9 @@ module.exports = (samjs) ->
           if v?.isRequired? and v.isRequired and v.test?
             required.push v.test.bind(v)()
         return samjs.Promise.all(required)
-          .return samjs.configs.isInstalled._set(true)
+          .then -> samjs.configs.isInstalled._set(true)
           .catch (e) -> throw new Error "not installed"
     checkInstalled: =>
       @ifInstalled()
       .then  -> samjs.lifecycle.installed()
-      .catch (e) -> console.log e.message
+      .catch -> return true

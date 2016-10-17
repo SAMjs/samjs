@@ -8,6 +8,7 @@ load = (name) ->
 init = ->
   samjs = new EventEmitter()
   samjs.Promise = require "bluebird"
+  samjs.socketio = require "socket.io"
   samjs.util = require "core-util-is"
   samjs.debug = require "./debug"
   samjs.order = ["plugins","options","configs","models","startup","shutdown"]

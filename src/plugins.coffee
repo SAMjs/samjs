@@ -3,7 +3,7 @@ module.exports = (samjs) ->
 
   validate = (plugin) ->
     unless samjs.util.isObject(plugin)
-      throw new Error "plugin needs to be an object or function"
+      throw new Error "plugin needs to be an object"
     unless plugin.debug
       if plugin.name
         plugin.debug = samjs.debug(plugin.name)
@@ -52,8 +52,6 @@ module.exports = (samjs) ->
     for plugin in plugins
       if samjs.util.isFunction plugin
         plugin = plugin(samjs)
-        unless samjs.util.isObject plugin
-          throw new Error "generator function for plugin should return an object"
       validate plugin
       if plugin.name?
         plugin.debug("exposing #{plugin.name}")

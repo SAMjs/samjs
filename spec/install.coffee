@@ -22,19 +22,17 @@ testModel = () ->
     else
       reject(new Error "wrongModel")
 describe "samjs", ->
-  before (done) ->
+  before ->
     samjs.reset()
-    fs.unlinkAsync testConfigFile
+    return fs.unlinkAsync testConfigFile
     .catch -> return true
-    .finally ->
-      done()
+
 
   describe "install", ->
     client = null
-    connect = null
     install = null
     promised = {}
-    before (done) ->
+    before  ->
       samjs.plugins().options({config:testConfigFile}).configs({
         name: "testable"
         isRequired: true
@@ -57,81 +55,71 @@ describe "samjs", ->
               socket.emit "set.#{request.token}", response
           return -> socket.removeAllListeners "set"
         }).startup().io.listen(port)
-      connect = reload("samjs-client")({
+      client = reload("samjs-client")({
         url: url
         ioOpts:
           reconnection: false
           autoConnect: false
-        })
-      done()
+        })()
 
-    after (done) ->
-      samjs.shutdown().then -> done()
+    after ->
+      samjs.shutdown?()
 
-    it "should trigger onceConfigure on server-side", (done) ->
-      samjs.state.onceConfigure.then -> done()
+    it "should trigger onceConfigure on server-side", ->
+      samjs.state.onceConfigure
 
-    it "should be connectable by client", (done) ->
-      client = connect()
+    it "should be connectable by client", ->
       install = client.install
       install.onceLoaded
-      .return done()
-      .catch done
 
-    it "should be in config mode client-side", (done) ->
+    it "should be in config mode client-side", ->
       install.onceConfigure
       .then (nsp) ->
         nsp.should.equal "/configure"
         return install.isInConfigMode()
       .then (nsp) ->
         nsp.should.equal "/configure"
-        done()
 
-    it "should reject a false config", (done) ->
+
+    it "should reject a false config", ->
       install.onceConfigure
       .return install.test("testable","wrongValue")
       .catch (e) ->
         e.message.should.equal "wrongConfig"
-        done()
 
-    it "should not save a false config", (done) ->
+    it "should not save a false config", ->
       install.onceConfigure
       .return install.set("testable","wrongValue")
       .catch (e) ->
         e.message.should.equal "wrongConfig"
-        done()
 
-    it "should save a proper config", (done) ->
+
+    it "should save a proper config",  ->
       install.onceConfigure
       .return install.set("testable","rightValue")
       .then samjs.configs["testable"]._get
       .then (str) ->
         str.should.equal "rightValue"
-        done()
-      .catch done
 
-    it "should be configured server-side", (done) ->
-      samjs.state.ifConfigured().then -> done()
 
-    it "should emit configured and install server-side", (done) ->
+    it "should be configured server-side", ->
+      samjs.state.ifConfigured()
+
+    it "should emit configured and install server-side", ->
       samjs.Promise.all([samjs.state.onceConfigured,samjs.state.onceInstall])
-      .return done()
 
-    it "should be configured client-side", (done) ->
+    it "should be configured client-side", ->
       install.onceConfigured
-      .then done
-      .catch done
 
-    it "should be in install mode client-side", (done) ->
+    it "should be in install mode client-side", ->
       install.onceInstall
       .then (nsp) ->
         nsp.should.equal "/install"
         return install.isInInstallMode()
       .then (nsp) ->
         nsp.should.equal "/install"
-        done()
 
-    it "should reject a false new installation", (done) ->
+    it "should reject a false new installation", ->
       install.onceConfigured
       .then ->
         install.isInInstallMode()
@@ -139,24 +127,20 @@ describe "samjs", ->
           client.io.nsp(nsp).getter("set",false)
       .catch (err) ->
         err.message.should.equal "wrongModel"
-        done()
 
-    it "should save a proper new installation", (done) ->
+    it "should save a proper new installation", ->
       install.onceConfigured
       .then ->
         install.isInInstallMode()
         .then (nsp) ->
           client.io.nsp(nsp).getter("set",true)
-      .then -> done()
-      .catch done
 
-    it "should trigger onceInstalled server-side", (done) ->
-      samjs.state.onceInstalled.then -> done()
 
-    it "should be installed client-side", (done) ->
+    it "should trigger onceInstalled server-side",  ->
+      samjs.state.onceInstalled
+
+    it "should be installed client-side",  ->
       install.onceInstalled
-      .then done
-      .catch done
 
-    it "should trigger onceStarted after install", (done) ->
-      samjs.state.onceStarted.then -> done()
+    it "should trigger onceStarted after install",  ->
+      samjs.state.onceStarted

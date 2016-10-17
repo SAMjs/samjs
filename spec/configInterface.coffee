@@ -4,7 +4,7 @@ samjs = require "../src/main"
 reload = require "simple-reload"
 fs = samjs.Promise.promisifyAll(require("fs"))
 
-port = 3030
+port = 3029
 url = "http://localhost:"+port+"/"
 
 testConfigFile = "test/testConfig.json"
@@ -17,14 +17,12 @@ test = (value) ->
       reject(new Error "wrong")
 describe "samjs", ->
   config = null
-  before (done) ->
+  before ->
     samjs.reset()
     fs.unlinkAsync testConfigFile
     .catch -> return true
-    .finally ->
-      done()
   describe "configInterface", ->
-    before (done) ->
+    before ->
       samjs.plugins().options({config:testConfigFile}).configs({
         name: "testable"
         read: true
@@ -38,49 +36,49 @@ describe "samjs", ->
         read: true
         test: test
         }).models().startup().io.listen(port)
-      samjs.state.onceStarted.then ->
+      return samjs.state.onceStarted.then ->
         config = reload("samjs-client")({
           url: url
           ioOpts:
             reconnection: false
             autoConnect: false
           })().config
-        done()
 
-    after (done) ->
-      samjs.shutdown().then -> done()
-    it "should be possible to retrieve values", (done) ->
+    after ->
+      samjs.shutdown()
+
+    it "should be connected", ->
+      return config.onceLoaded
+
+    it "should be possible to retrieve values", ->
       config.get "testable"
-      .then (result) ->
-        should.not.exist result
-        done()
-      .catch done
-    it "should be impossible to retrieve unreadable values", (done) ->
+      .then (result) -> should.not.exist result
+
+    it "should be impossible to retrieve unreadable values",  ->
       config.get "unreadable"
-      .catch (e) ->
-        done()
-    it "should be possible to test values", (done) ->
+      .then (result) -> should.not.exist result
+      .catch -> true
+
+    it "should be possible to test values",  ->
       test1 = config.test "testable", "rightValue"
       test2 = new samjs.Promise (resolve) ->
         config.test "testable", "wrongValue"
         .catch (e) ->
           resolve()
       samjs.Promise.all [test1,test2]
-      .then -> done()
-      .catch done
-    it "should be impossible to test unwriteable values", (done) ->
+
+    it "should be impossible to test unwriteable values", ->
       config.test "unwriteable", "rightValue"
-      .catch (e) ->
-        done()
-    it "should be possible to set values", (done) ->
+      .then (result) -> should.not.exist result
+      .catch (e) -> true
+
+    it "should be possible to set values", ->
       config.set "testable", "rightValue"
       .then ->
         config.get "testable"
       .then (result) ->
         result.should.equal "rightValue"
-        done()
-      .catch done
-    it "should be impossible to set unwriteable values", (done) ->
+    it "should be impossible to set unwriteable values", ->
       config.set "unwriteable", "rightValue"
-      .catch (e) ->
-        done()
+      .then (result) -> should.not.exist result
+      .catch (e) -> true

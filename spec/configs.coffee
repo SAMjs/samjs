@@ -8,11 +8,9 @@ testConfigFile = "test/testConfig.json"
 
 describe "samjs", ->
 
-  before (done) ->
+  before ->
     fs.unlinkAsync testConfigFile
     .catch -> return true
-    .finally ->
-      done()
   describe "configs", ->
     describe "a config item",->
       beforeEach -> samjs.reset().plugins().options({config:testConfigFile})
@@ -20,7 +18,7 @@ describe "samjs", ->
         samjs.configs({name:"test"})
         samjs.configs["test"].should.be.a("object")
         samjs.configs["test"].class.should.equal("Config")
-      it "should reject _getBare", (done) ->
+      it "should reject _getBare",  ->
         samjs.configs({name:"_getBare"})
         config = samjs.configs["_getBare"]
         getter = config._getBare()
@@ -29,25 +27,21 @@ describe "samjs", ->
         .catch (e) ->
           e.message.should.equal "config _getBare not set"
           getter.should.equal(config.loaded)
-        .catch done
         .then -> getter = config._getBare()
         .then (msg) ->
           should.not.exist msg
         .catch (e) ->
           e.message.should.equal "config _getBare not set"
           getter.should.not.equal(config.loaded)
-          done()
-        .catch done
-      it "should be _setable and _getable", (done) ->
+          return true
+      it "should be _setable and _getable",  ->
         samjs.configs({name:"test"})
         config = samjs.configs["test"]
         config._set("testData")
         .then config._get
         .then (result) ->
           result.should.equal("testData")
-          done()
-        .catch done
-      it "should be _testable", (done) ->
+      it "should be _testable", ->
         samjs.configs({name:"test", test: ((data) ->
           if data == custom
             return Promise.resolve(data)
@@ -62,9 +56,7 @@ describe "samjs", ->
           should.not.exist msg
         .catch (msg) ->
           msg.should.be.false
-          done()
-        .catch done
-      it "should be setable", (done) ->
+      it "should be setable",  ->
         samjs.configs({name:"test",write:true})
         config = samjs.configs["test"]
         config.set("testData")
@@ -76,9 +68,8 @@ describe "samjs", ->
           should.not.exist msg
         .catch (e) ->
           e.message.should.equal "no permission"
-          done()
-        .catch done
-      it "should be getable", (done) ->
+
+      it "should be getable", ->
         samjs.configs({name:"test",read:true})
         config = samjs.configs["test"]
         config._set("testData")
@@ -90,9 +81,8 @@ describe "samjs", ->
           should.not.exist msg
         .catch (e) ->
           e.message.should.equal "no permission"
-          done()
-        .catch done
-      it "should be testable", (done) ->
+
+      it "should be testable",  ->
         samjs.configs({name:"test",write:false, test: ((data) ->
           if data == custom
             return Promise.resolve(data)
@@ -113,9 +103,8 @@ describe "samjs", ->
           should.not.exist msg
         .catch (msg) ->
           msg.should.be.false
-          done()
-        .catch done
-      it "should save properly with custom config file", (done) ->
+
+      it "should save properly with custom config file", ->
         samjs.configs({name:"test"})
         samjs.configs.test._set custom
         .then () ->
@@ -123,8 +112,7 @@ describe "samjs", ->
             .then JSON.parse
             .then (content) ->
               content.test.should.equal custom
-              done()
-        .catch done
+
     describe "plugin interaction", ->
       beforeEach ->
         samjs.reset()
@@ -147,7 +135,7 @@ describe "samjs", ->
         ]).configs({name:"test"},{name:"test2",isRequired:false})
         samjs.configs["test"].isRequired.should.be.true
         samjs.configs["test2"].isRequired.should.be.true
-      it "should take plugin beforeGet hook", (done) ->
+      it "should take plugin beforeGet hook", ->
         start(hooks: configs: beforeGet: [({client}) ->
           if client != true
             throw new Error "not true"
@@ -156,13 +144,12 @@ describe "samjs", ->
         samjs.configs["getter"].get(true)
           .then (result) ->
             should.not.exist(result)
-          .catch done
+          .catch (e) -> should.not.exist (e)
           .then ->
             samjs.configs["getter"].get(false)
           .catch (e) ->
             e.message.should.equal "not true"
-            done()
-      it "should take plugin beforeSet hook", (done) ->
+      it "should take plugin beforeSet hook", ->
         start(hooks: configs: beforeSet: [({client,data}) ->
           if client != true
             throw new Error "not true"
@@ -173,13 +160,12 @@ describe "samjs", ->
             samjs.configs["setter"]._get()
           .then (result) ->
             result.should.equal "value"
-          .catch done
+          .catch (e) -> should.not.exist (e)
           .then ->
             samjs.configs["setter"].set("value", false)
           .catch (e) ->
             e.message.should.equal "not true"
-            done()
-      it "should take plugin beforeTest hook", (done) ->
+      it "should take plugin beforeTest hook", ->
         start(hooks: configs: beforeTest: [({client,data}) ->
           if client != true
             throw new Error "not true"
@@ -188,9 +174,8 @@ describe "samjs", ->
         samjs.configs["tester"].test("value", true)
           .then (result) ->
             result.should.equal "value"
-          .catch done
+          .catch (e) -> should.not.exist (e)
           .then ->
             samjs.configs["tester"].test("value", false)
           .catch (e) ->
             e.message.should.equal "not true"
-            done()

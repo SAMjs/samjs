@@ -51,6 +51,7 @@ module.exports = (samjs) ->
       # helper to expose a single interface
       exposeInterface = (itf, name, binding) ->
         tempitf = if binding then itf.bind(binding) else itf
+        samjs.io.of("/#{name}").on "connection", tempitf
         return -> samjs.io.of("/#{name}").removeListener "connection", tempitf
       # helper to expose a multiple (or single) interfaces
       exposeInterfaces = (interfaces, name, binding) =>

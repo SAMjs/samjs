@@ -121,11 +121,16 @@ module.exports = (samjs) ->
           samjs.io.of("/install").emit "done"
           resolve()
     finish: ->
-      responder("installation",false)
-      samjs.io.of("/configure").emit "done"
-      samjs.io.of("/install").emit "done"
-      if samjs.io.engine?
-        debug "issuing reconnect of all connected sockets"
-        for socket in samjs.io.nsps["/"].sockets
-          socket?.onclose("reconnect")
-        samjs.io.engine.close()
+      return new samjs.Promise (resolve) ->
+        deleteResponder = responder("installation",false)
+        samjs.io.of("/configure").emit "done"
+        samjs.io.of("/install").emit "done"
+        setTimeout (->
+          if samjs.io.engine?
+            debug "issuing reconnect of all connected sockets"
+            for socket in samjs.io.nsps["/"].sockets
+              socket?.onclose("reconnect")
+            samjs.io.engine.close()
+          deleteResponder()
+          resolve()
+          ),500
