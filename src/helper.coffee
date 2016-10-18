@@ -1,7 +1,15 @@
 # out: ../lib/helper.js
+{randomBytes} = require("crypto")
+
 module.exports = (samjs) ->
   util = samjs.util
   samjs.helper = new class Helper
+    generateToken: (size) ->
+      return new samjs.Promise (resolve, reject) ->
+        try
+          resolve(randomBytes(size).toString("base64"))
+        catch
+          reject()
     merge: ({dest, src, overwrite, clone}) =>
       if src? and samjs.util.isObject(src)
         overwrite ?= false
