@@ -8,7 +8,7 @@ module.exports = (samjs) -> samjs.startup = (server) ->
   if samjs.server
     samjs.debug.startup "got server"
     samjs.io = samjs.socketio(samjs.server)
-  else
+  else unless samjs.noServer
     samjs.debug.startup "creating httpServer"
     samjs.io = samjs.socketio()
   samjs.debug.startup "checking installation"

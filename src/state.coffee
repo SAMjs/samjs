@@ -19,6 +19,12 @@ module.exports = (samjs) ->
           samjs.debug.lifecycle name
           samjs.emit name, obj
           return samjs._hooks[name](obj)
+  emitAndCleanup = ->
+    samjs.emit "beforeConfigureOrInstall"
+    samjs.removeListener "beforeConfigure", emitAndCleanup
+    samjs.removeListener "beforeInstall", emitAndCleanup
+  samjs.once "beforeConfigure", emitAndCleanup
+  samjs.once "beforeInstall", emitAndCleanup
 
   samjs.state = new class State
     constructor: ->
@@ -35,6 +41,7 @@ module.exports = (samjs) ->
           samjs.removeListener "install", resolveAndCleanup
         samjs.once "configure", resolveAndCleanup
         samjs.once "install", resolveAndCleanup
+
     reset: =>
       @init()
 

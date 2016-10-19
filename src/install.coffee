@@ -122,6 +122,7 @@ module.exports = (samjs) ->
           resolve()
     finish: ->
       return new samjs.Promise (resolve) ->
+        return resolve() unless samjs.io?
         deleteResponder = responder("installation",false)
         samjs.io.of("/configure").emit "done"
         samjs.io.of("/install").emit "done"
