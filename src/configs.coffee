@@ -11,7 +11,6 @@ module.exports = (samjs) ->
       if not options or not options.name
         throw new Error("config needs 'name' property")
       @name = options.name
-      delete options.name
       @class = "Config"
       samjs.helper.initiateHooks(@,asyncHooks,syncHooks)
       for plugin in samjs._plugins

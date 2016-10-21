@@ -9,43 +9,30 @@ module.exports = (samjs) ->
           socket.emit trigger+"."+request.token,
             {success:response != false, content: response}
       socket.on trigger, respond
-    remover = ->
-      debug "removing responder on #{trigger} (#{response})"
-      samjs.io.of("/").removeListener "connection", listener
-      for socketid,socket of samjs.io.sockets.connected
-        socket.removeAllListeners trigger
     debug "setting #{response} responder on #{trigger}"
     samjs.io.on "connection", listener
     for socketid,socket of samjs.io.sockets.connected
       listener(socket)
-    return remover
+
   return new class Install
     configure: =>
       samjs.lifecycle.beforeConfigure()
       debug "exposing configuration"
-      disposes = []
       samjs.io.of("/configure").on "connection", (socket) =>
         debug "socket connected"
         for name,config of samjs.configs
           if config.isRequired
-            disposes.push @configListener socket, config
+            @configListener socket, config
             if config.installInterface?
-              disposer = config.installInterface.bind(config)(socket)
-              unless samjs.util.isFunction disposer
-                throw new Error "installInterface needs to return a dispose
-                  function model: #{name}"
-              disposes.push disposer
-      disposes.push ->
-        samjs.io.of("/configure").removeAllListeners "connection"
-      deleteResponder = responder("installation","configure")
+              config.installInterface.bind(config)(socket)
+
+
+      responder("installation","configure")
       samjs.io.emit "configure"
       samjs.lifecycle.configure()
       return new samjs.Promise (resolve) ->
         samjs.state.onceConfigured.then ->
-          debug "configured"
-          for dispose in disposes
-            dispose()
-          deleteResponder()
+          samjs.removeAllSocketIOListeners()
           resolve()
 
     configListener: (socket, config) ->
@@ -88,50 +75,34 @@ module.exports = (samjs) ->
           .catch (err)     -> success:false, content:err?.message
           .then (response) ->
             socket.emit "#{config.name}.set.#{request.token}", response
-      return ->
-        if socket?
-          socket.removeAllListeners "#{config.name}.test"
-          socket.removeAllListeners "#{config.name}.get"
-          socket.removeAllListeners "#{config.name}.set"
 
 
     install: ->
       samjs.lifecycle.beforeInstall()
       debug "exposing install"
-      disposes = []
-      for name, model of samjs.models
-        if model.isRequired
-          samjs.io.of("/install").on "connection", (socket) ->
-            disposer = model.installInterface.bind(model)(socket)
-            unless samjs.util.isFunction disposer
-              throw new Error "installInterface needs to return a dispose
-                function model: #{name}"
-            disposes.push disposer
-      disposes.push ->
-        samjs.io.of("/install").removeAllListeners "connection"
-      deleteResponder = responder("installation","install")
+      samjs.io.of("/install").on "connection", (socket) ->
+        for name, model of samjs.models
+          if model.isRequired
+            model.installInterface.bind(model)(socket)
+      responder("installation","install")
       samjs.io.of("/configure").emit "done"
       samjs.io.emit "install"
       samjs.lifecycle.install()
       return new samjs.Promise (resolve) ->
         samjs.state.onceInstalled.then ->
-          for dispose in disposes
-            dispose()
-          deleteResponder()
           samjs.io.of("/install").emit "done"
+          samjs.removeAllSocketIOListeners()
           resolve()
     finish: ->
       return new samjs.Promise (resolve) ->
         return resolve() unless samjs.io?
-        deleteResponder = responder("installation",false)
+        responder("installation",false)
         samjs.io.of("/configure").emit "done"
         samjs.io.of("/install").emit "done"
         setTimeout (->
-          if samjs.io.engine?
+          if samjs.io?.engine?
             debug "issuing reconnect of all connected sockets"
-            for socket in samjs.io.nsps["/"].sockets
-              socket?.onclose("reconnect")
+            samjs.removeAllSocketIOListeners()
             samjs.io.engine.close()
-          deleteResponder()
           resolve()
           ),500

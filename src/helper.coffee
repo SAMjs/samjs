@@ -65,7 +65,7 @@ module.exports = (samjs) ->
         return obj
       return []
     initiateHooks: (obj,asyncHooks,syncHooks) ->
-      obj._hooks = {}
+      obj._hooks ?= {}
       obj.addHook = (name, hook, after) ->
         if obj._hooks[name]?
           after ?= name.indexOf("after") > -1

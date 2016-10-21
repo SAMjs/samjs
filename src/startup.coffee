@@ -5,12 +5,14 @@ module.exports = (samjs) -> samjs.startup = (server) ->
   samjs.server = server
   samjs.lifecycle.beforeStartup()
   samjs.debug.startup "processing"
-  if samjs.server
-    samjs.debug.startup "got server"
-    samjs.io = samjs.socketio(samjs.server)
-  else unless samjs.noServer
-    samjs.debug.startup "creating httpServer"
-    samjs.io = samjs.socketio()
+  # startup io unless it is there or said otherwise
+  unless samjs.io? or samjs.noServer
+    if samjs.server
+      samjs.debug.startup "got server"
+      samjs.io = samjs.socketio(samjs.server)
+    else
+      samjs.debug.startup "creating httpServer"
+      samjs.io = samjs.socketio()
   samjs.debug.startup "checking installation"
   install = require("./install")(samjs)
   samjs.state.startup = samjs.state.ifConfigured()

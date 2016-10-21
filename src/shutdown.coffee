@@ -2,7 +2,7 @@
 module.exports = (samjs) -> samjs.shutdown = ->
   samjs.lifecycle.beforeShutdown()
   ioClosed = new samjs.Promise (resolve) ->
-    samjs.io.httpServer.on "close", ->
+    samjs.io.httpServer.once "close", ->
       samjs.debug.core("server closed")
       setTimeout resolve, 50
   samjs.io.close()

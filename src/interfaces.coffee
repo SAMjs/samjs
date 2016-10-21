@@ -37,30 +37,35 @@ module.exports = (samjs) ->
           samjs.debug.configs "socket connected"
           for name, config of samjs.configs
             listener(socket, config)
+          socket.on "disconnect", ->
+            samjs.debug.configs "socket disconnected"
       @_closers = {}
+
     add: (name, itf) ->
       @_interfaces[name] = ift
     close: (name) =>
+      close = (closers) ->
+        for close in closers
+          close()
       if name
-        if samjs.util.isFunction(@_closers[name]?)
-          @_closers[name]()
+        if @_closers[name]?
+          close(@_closers[name])
       else
-        for name, closer of @_closers
-          closer()
+        for name, closers of @_closers
+          close(closers)
+      return null
     expose: (name) =>
-      # helper to expose a single interface
-      exposeInterface = (itf, name, binding) ->
-        tempitf = if binding then itf.bind(binding) else itf
-        samjs.io.of("/#{name}").on "connection", tempitf
-        return -> samjs.io.of("/#{name}").removeListener "connection", tempitf
       # helper to expose a multiple (or single) interfaces
       exposeInterfaces = (interfaces, name, binding) =>
         @_closers[name] ?= []
-        if samjs.util.isArray interfaces
+        unless samjs.util.isArray interfaces
+          interfaces = [interfaces]
+        listener = (socket) ->
           for itf in interfaces
-            @_closers[name].push exposeInterface(itf, name, binding)
-        else
-          @_closers[name].push exposeInterface(interfaces, name, binding)
+            itf.bind(binding)(socket)
+        samjs.io.of("/#{name}").on "connection", listener
+        @_closers[name].push ->
+          samjs.io.of("/#{name}").removeListener "connection", listener
       # only expose a specific interface
       if name
         # a config or manual set interface

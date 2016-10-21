@@ -9,7 +9,7 @@ module.exports = (samjs) ->
     lifecycleNames.push prop
     lifecycleNames.push "before"+prop.charAt(0).toUpperCase()+prop.slice(1)
 
-  samjs.helper.initiateHooks(samjs, asyncStateNames, lifecycleNames)
+
   lifecycleNames = lifecycleNames.concat(asyncStateNames)
 
   samjs.lifecycle = new class Lifecycle
@@ -19,17 +19,13 @@ module.exports = (samjs) ->
           samjs.debug.lifecycle name
           samjs.emit name, obj
           return samjs._hooks[name](obj)
-  emitAndCleanup = ->
-    samjs.emit "beforeConfigureOrInstall"
-    samjs.removeListener "beforeConfigure", emitAndCleanup
-    samjs.removeListener "beforeInstall", emitAndCleanup
-  samjs.once "beforeConfigure", emitAndCleanup
-  samjs.once "beforeInstall", emitAndCleanup
+
 
   samjs.state = new class State
     constructor: ->
       @init()
     init: ->
+      samjs.helper.initiateHooks(samjs, asyncStateNames, lifecycleNames)
       for prop in stateNames
         name = "once"+prop.charAt(0).toUpperCase()+prop.slice(1)
         @[name] = new samjs.Promise (resolve) ->
@@ -41,6 +37,12 @@ module.exports = (samjs) ->
           samjs.removeListener "install", resolveAndCleanup
         samjs.once "configure", resolveAndCleanup
         samjs.once "install", resolveAndCleanup
+      emitAndCleanup = ->
+        samjs.emit "beforeConfigureOrInstall"
+        samjs.removeListener "beforeConfigure", emitAndCleanup
+        samjs.removeListener "beforeInstall", emitAndCleanup
+      samjs.once "beforeConfigure", emitAndCleanup
+      samjs.once "beforeInstall", emitAndCleanup
 
     reset: =>
       @init()
