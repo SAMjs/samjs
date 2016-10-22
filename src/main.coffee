@@ -28,7 +28,7 @@ init = ->
     if samjs._plugins?
       for plugin in samjs._plugins
         plugin.shutdown?.bind(samjs)()
-    samjs.interfaces?.close()
+    samjs.interfaces?.reset()
     for prop in samjs.props
       samjs[prop] = null
     samjs.removeAllSocketIOListeners()

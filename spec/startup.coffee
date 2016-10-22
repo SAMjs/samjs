@@ -33,9 +33,7 @@ describe "samjs", ->
         model = ioClient.Manager("/test")
         model.once "test", ->
           socket.close()
-          samjs.shutdown()
-          .then -> done()
-          .catch done
+          done()
         model.emit "test"
       socket.open()
   after ->

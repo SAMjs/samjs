@@ -6,6 +6,37 @@ module.exports = (samjs) ->
     "beforeGet","beforeSet","beforeTest","before_Set"]
   syncHooks = ["afterCreate","beforeCreate"]
 
+  listener = (socket) ->
+    # tester
+    samjs.debug.configs "listening on "+ @name + ".test"
+    socket.on @name + ".test", (request) =>
+      if request?.content? and request.token?
+        @test.bind(@)(request.content, socket.client)
+        .then (info) -> success:true , content:info
+        .catch (err) -> success:false, content:err?.message
+        .then (response) =>
+          socket.emit @name + ".test." + request.token, response
+    # getter
+    samjs.debug.configs "listening on "+ @name + ".get"
+    socket.on @name + ".get", (request) =>
+      if request?.token?
+        @get.bind(@)(socket.client)
+        .then (response) -> success:true , content:response
+        .catch (err)     -> success:false, content:err?.message
+        .then (response) =>
+          socket.emit @name + ".get." + request.token, response
+    # setter
+    samjs.debug.configs "listening on "+ @name + ".set"
+    socket.on @name + ".set", (request) =>
+      if request?.content? and request.token?
+        @set.bind(@)(request.content, socket.client)
+        .then (response) ->
+          socket.broadcast.emit "updated", @name
+          success:true , content:response
+        .catch (err)     -> success:false, content:err?.message
+        .then (response) =>
+          socket.emit @name + ".set." + request.token, response
+
   class Config
     constructor: (options) ->
       if not options or not options.name
@@ -119,6 +150,9 @@ module.exports = (samjs) ->
       createConfig(config)
     for def in defaults
       createConfig(def) unless samjs.configs[def.name]?
+    for name, config of samjs.configs
+      if config?.name?
+        samjs.interfaces.add "config", listener.bind(config)
     samjs.lifecycle.configs configs
     samjs.debug.configs("finished")
     samjs.expose.models()

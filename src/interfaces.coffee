@@ -1,48 +1,20 @@
 # out: ../lib/interfaces.js
 module.exports = (samjs) ->
-  listener = (socket, config) ->
-    # tester
-    samjs.debug.configs "listening on "+ config.name + ".test"
-    socket.on config.name + ".test", (request) ->
-      if request?.content? and request.token?
-        config.test(request.content, socket.client)
-        .then (info) -> success:true , content:info
-        .catch (err) -> success:false, content:err?.message
-        .then (response) ->
-          socket.emit config.name + ".test." + request.token, response
-    # getter
-    samjs.debug.configs "listening on "+ config.name + ".get"
-    socket.on config.name + ".get", (request) ->
-      if request?.token?
-        config.get(socket.client)
-        .then (response) -> success:true , content:response
-        .catch (err)     -> success:false, content:err?.message
-        .then (response) ->
-          socket.emit config.name + ".get." + request.token, response
-    # setter
-    samjs.debug.configs "listening on "+ config.name + ".set"
-    socket.on config.name + ".set", (request) ->
-      if request?.content? and request.token?
-        config.set(request.content, socket.client)
-        .then (response) ->
-          socket.broadcast.emit "updated", config.name
-          success:true , content:response
-        .catch (err)     -> success:false, content:err?.message
-        .then (response) ->
-          socket.emit config.name + ".set." + request.token, response
-  samjs.interfaces = new class Interfaces
-    constructor: ->
-      @_interfaces =
-        config: (socket) ->
-          samjs.debug.configs "socket connected"
-          for name, config of samjs.configs
-            listener(socket, config)
-          socket.on "disconnect", ->
-            samjs.debug.configs "socket disconnected"
-      @_closers = {}
 
+  samjs.interfaces = new class Interfaces
+    constructor: -> @reset()
+    reset: =>
+      @_interfaces =
+        config: [((socket) ->
+            samjs.debug.configs "socket connected"
+            socket.on "disconnect", ->
+              samjs.debug.configs "socket disconnected"
+          )]
+      @_closers = {}
     add: (name, itf) ->
-      @_interfaces[name] = ift
+      @_interfaces[name] ?= []
+      @_interfaces[name].push itf
+
     close: (name) =>
       close = (closers) ->
         for close in closers
@@ -60,9 +32,14 @@ module.exports = (samjs) ->
         @_closers[name] ?= []
         unless samjs.util.isArray interfaces
           interfaces = [interfaces]
-        listener = (socket) ->
-          for itf in interfaces
-            itf.bind(binding)(socket)
+        if binding?
+          listener = (socket) ->
+            for itf in interfaces
+              itf.bind(binding)(socket)
+        else
+          listener = (socket) ->
+            for itf in interfaces
+              itf(socket)
         samjs.io.of("/#{name}").on "connection", listener
         @_closers[name].push ->
           samjs.io.of("/#{name}").removeListener "connection", listener

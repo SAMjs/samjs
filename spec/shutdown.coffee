@@ -2,7 +2,7 @@ chai = require "chai"
 should = chai.should()
 samjs = require "../src/main"
 ioClient = require "socket.io-client"
-port = 3031
+port = 3035
 url = "http://localhost:"+port+"/"
 
 describe "samjs", ->
@@ -16,5 +16,6 @@ describe "samjs", ->
       socket.once "connect", ->
         socket.once "disconnect", ->
           done()
-        samjs.shutdown()
+        samjs.state.onceStarted.then ->
+          samjs.shutdown()
       socket.open()
