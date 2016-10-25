@@ -90,7 +90,6 @@ module.exports = (samjs) ->
       samjs.lifecycle.install()
       return new samjs.Promise (resolve) ->
         samjs.state.onceInstalled.then ->
-          samjs.io.of("/install").emit "done"
           samjs.removeAllSocketIOListeners()
           resolve()
     finish: ->
