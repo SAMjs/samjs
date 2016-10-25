@@ -11,8 +11,8 @@ module.exports = (samjs) ->
     samjs.debug.configs "listening on "+ @name + ".test"
     socket.on @name + ".test", (request) =>
       if request?.content? and request.token?
-        @test.bind(@)(request.content, socket.client)
-        .then (info) -> success:true , content:info
+        @test.bind(@)(request.content, socket)
+        .then ({data}) -> success:true , content:data
         .catch (err) -> success:false, content:err?.message
         .then (response) =>
           socket.emit @name + ".test." + request.token, response
@@ -20,8 +20,8 @@ module.exports = (samjs) ->
     samjs.debug.configs "listening on "+ @name + ".get"
     socket.on @name + ".get", (request) =>
       if request?.token?
-        @get.bind(@)(socket.client)
-        .then (response) -> success:true , content:response
+        @get.bind(@)(socket)
+        .then ({data}) -> success:true , content:data
         .catch (err)     -> success:false, content:err?.message
         .then (response) =>
           socket.emit @name + ".get." + request.token, response
@@ -29,10 +29,10 @@ module.exports = (samjs) ->
     samjs.debug.configs "listening on "+ @name + ".set"
     socket.on @name + ".set", (request) =>
       if request?.content? and request.token?
-        @set.bind(@)(request.content, socket.client)
-        .then (response) ->
+        @set.bind(@)(request.content, socket)
+        .then ({data}) ->
           socket.broadcast.emit "updated", @name
-          success:true , content:response
+          success:true , content:data
         .catch (err)     -> success:false, content:err?.message
         .then (response) =>
           socket.emit @name + ".set." + request.token, response
@@ -88,11 +88,12 @@ module.exports = (samjs) ->
         .catch () ->
           return null
         .then @_hooks.after_Get
-    get: (client) =>
+    get: (socket) =>
       return samjs.Promise.reject(new Error("no permission")) unless @read
-      return @_hooks.beforeGet(client: client)
+      return @_hooks.beforeGet(socket: socket)
         .then @_get
-        .then @_hooks.afterGet
+        .then (data) =>
+          @_hooks.afterGet(data:data, socket: socket)
 
     _set: (newData) =>
       oldData = @data
@@ -110,17 +111,18 @@ module.exports = (samjs) ->
               fs.writeFileAsync samjs.options.config, JSON.stringify(data)
         .then => @_hooks.after_Set(data:newData, oldData: oldData)
 
-    set: (data, client) =>
+    set: (data, socket) =>
       return samjs.Promise.reject(new Error("no permission")) unless @write
-      return @_hooks.beforeSet(data: data, client: client)
+      return @_hooks.beforeSet(data: data, socket: socket)
         .then ({data}) => @_set(data)
-        .then @_hooks.afterSet
+        .then ({data,oldData}) =>
+          @_hooks.afterSet({data:data,oldData:oldData,socket:socket})
 
-    test: (data, client) ->
+    test: (data, socket) ->
       return samjs.Promise.reject(new Error("no permission")) unless @write
-      return @_hooks.beforeTest(data: data, client: client)
+      return @_hooks.beforeTest(data: data, socket: socket)
         .then ({data}) => @_test(data, @data)
-        .then @_hooks.afterTest
+        .then (data) => @_hooks.afterTest(data: data, socket:socket)
 
   samjs.configs = (configs...) ->
     samjs.helper.inOrder("configs")

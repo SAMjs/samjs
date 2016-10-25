@@ -74,8 +74,8 @@ describe "samjs", ->
         config = samjs.configs["test"]
         config._set("testData")
         .then config.get
-        .then (result) ->
-          result.should.equal("testData")
+        .then ({data}) ->
+          data.should.equal("testData")
           return config.set("testData2")
         .then (msg) ->
           should.not.exist msg
@@ -90,19 +90,19 @@ describe "samjs", ->
             return Promise.reject(data)
         )})
         samjs.configs["test"].test(custom)
-        .then (msg) ->
-          should.not.exist msg
+        .then ({data}) ->
+          should.not.exist data
         .catch (e) ->
           e.message.should.equal "no permission"
           samjs.configs["test"].write = true
           return samjs.configs["test"].test(custom)
-        .then (msg) ->
-          msg.should.equal(custom)
+        .then ({data}) ->
+          data.should.equal(custom)
           return samjs.configs["test"].test(false)
-        .then (msg) ->
-          should.not.exist msg
-        .catch (msg) ->
-          msg.should.be.false
+        .then ({data}) ->
+          should.not.exist data
+        .catch (obj) ->
+          obj.should.be.false
 
       it "should save properly with custom config file", ->
         samjs.configs({name:"test"})
@@ -136,24 +136,24 @@ describe "samjs", ->
         samjs.configs["test"].isRequired.should.be.true
         samjs.configs["test2"].isRequired.should.be.true
       it "should take plugin beforeGet hook", ->
-        start(hooks: configs: beforeGet: [({client}) ->
-          if client != true
+        start(hooks: configs: beforeGet: [(obj) ->
+          if obj.socket != true
             throw new Error "not true"
-          return client:client
+          return obj
         ]).configs({name:"getter",read:true})
         samjs.configs["getter"].get(true)
-          .then (result) ->
-            should.not.exist(result)
+          .then ({data}) ->
+            should.not.exist(data)
           .catch (e) -> should.not.exist (e)
           .then ->
             samjs.configs["getter"].get(false)
           .catch (e) ->
             e.message.should.equal "not true"
       it "should take plugin beforeSet hook", ->
-        start(hooks: configs: beforeSet: [({client,data}) ->
-          if client != true
+        start(hooks: configs: beforeSet: [(obj) ->
+          if obj.socket != true
             throw new Error "not true"
-          return client:client, data:data
+          return obj
         ]).configs({name:"setter",write:true})
         samjs.configs["setter"].set("value", true)
           .then ->
@@ -166,14 +166,14 @@ describe "samjs", ->
           .catch (e) ->
             e.message.should.equal "not true"
       it "should take plugin beforeTest hook", ->
-        start(hooks: configs: beforeTest: [({client,data}) ->
-          if client != true
+        start(hooks: configs: beforeTest: [(obj) ->
+          if obj.socket != true
             throw new Error "not true"
-          return client:client,data:data
+          return obj
         ]).configs({name:"tester",write:true})
         samjs.configs["tester"].test("value", true)
-          .then (result) ->
-            result.should.equal "value"
+          .then ({data}) ->
+            data.should.equal "value"
           .catch (e) -> should.not.exist (e)
           .then ->
             samjs.configs["tester"].test("value", false)
