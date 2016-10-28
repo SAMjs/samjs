@@ -83,7 +83,7 @@ describe "samjs", ->
           e.message.should.equal "no permission"
 
       it "should be testable",  ->
-        samjs.configs({name:"test",write:false, test: ((data) ->
+        samjs.configs({name:"test",access:{write:false}, test: ((data) ->
           if data == custom
             return Promise.resolve(data)
           else
@@ -94,7 +94,7 @@ describe "samjs", ->
           should.not.exist data
         .catch (e) ->
           e.message.should.equal "no permission"
-          samjs.configs["test"].write = true
+          samjs.configs["test"].access.write = true
           return samjs.configs["test"].test(custom)
         .then ({data}) ->
           data.should.equal(custom)
@@ -140,7 +140,7 @@ describe "samjs", ->
           if obj.socket != true
             throw new Error "not true"
           return obj
-        ]).configs({name:"getter",read:true})
+        ]).configs({name:"getter",access:read:true})
         samjs.configs["getter"].get(true)
           .then ({data}) ->
             should.not.exist(data)
@@ -154,7 +154,7 @@ describe "samjs", ->
           if obj.socket != true
             throw new Error "not true"
           return obj
-        ]).configs({name:"setter",write:true})
+        ]).configs({name:"setter",access:write:true})
         samjs.configs["setter"].set("value", true)
           .then ->
             samjs.configs["setter"]._get()
@@ -170,7 +170,7 @@ describe "samjs", ->
           if obj.socket != true
             throw new Error "not true"
           return obj
-        ]).configs({name:"tester",write:true})
+        ]).configs({name:"tester",access:write:true})
         samjs.configs["tester"].test("value", true)
           .then ({data}) ->
             data.should.equal "value"

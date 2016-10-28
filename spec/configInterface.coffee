@@ -25,15 +25,18 @@ describe "samjs", ->
     before ->
       samjs.plugins().options({config:testConfigFile}).configs({
         name: "testable"
-        read: true
-        write: true
+        access:
+          read: true
+          write: true
         test: test
       },{
         name: "unreadable"
-        write: true
+        access:
+          write: true
       },{
         name: "unwriteable"
-        read: true
+        access:
+          read: true
         test: test
         }).models().startup().io.listen(port)
       return samjs.state.onceStarted.then ->

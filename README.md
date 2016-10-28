@@ -121,8 +121,7 @@ samjs.configs([{name:"paths"},{name:"users"}])
 | Name | type | default | description |
 | ---:| --- | ---| --- |
 | name | String | - | (required) name of the config object. To access the config object after setup :`samjs.configs[name]`|
-| write | Boolean | `false` | allowes to write this config value by client |
-| read | Boolean | `false` | allowes to read this config value by client |
+| access | Object | `{read:false,write:false}` | allowes to access this config value by client |
 | test | Function | - | Function to test values for validity. Must return a promise which resolves on success and rejects on error.  |
 | isRequired | Boolean | `false` | includes this config object in configuration phase. (see [lifecycle](#lifecycle)) |
 | hooks | Object | - | functions to get called on specific interactions with this config object. |
@@ -139,15 +138,15 @@ They always have to return their arguments.
 | ---:| ---| --- |
 | beforeCreate | `options` | manipulate the options object before creation  |
 | afterCreate | `options` | manipulate the options object after creation  |
-| beforeSet | `{data, client}` | used to authenticate a set request |
+| beforeSet | `{data, socket}` | used to authenticate a set request |
 | before_Set | `{data, oldData}` | used to manipulate a set request |
-| afterSet | - | called after a successfull set request from client |
+| afterSet | `{data, oldData, socket}`  | called after a successfull set request from client |
 | after_Set | `{data, oldData}` | called after each successfull set request |
-| beforeGet | `{client}` | used to authenticate a get request |
-| after_Get | - | called after a successfull _get request  |
-| afterGet | - | called after a successfull get request from client |
-| beforeTest | `{data, client}` | used to authenticate a test request |
-| afterTest | - | called after a successfull test request from client |
+| beforeGet | `{socket}` | used to authenticate a get request |
+| after_Get | `data` | called after a successfull _get request  |
+| afterGet | `{data, socket}` | called after a successfull get request from client |
+| beforeTest | `{data, socket}` | used to authenticate a test request |
+| afterTest | `{data, socket}` | called after a successfull test request from client |
 
 example (how `samjs-auth` basically works):
 ```js

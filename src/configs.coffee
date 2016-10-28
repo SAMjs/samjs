@@ -44,6 +44,7 @@ module.exports = (samjs) ->
       @name = options.name
       @class = "Config"
       samjs.helper.initiateHooks(@,asyncHooks,syncHooks)
+      samjs.configs._hooks.beforeProcess(@)
       for plugin in samjs._plugins
         if plugin.hooks?.configs?
           for hookname, hooks of plugin.hooks.configs
@@ -65,9 +66,10 @@ module.exports = (samjs) ->
         @addHook(hookname,hooks)
       delete options.hooks
       samjs.helper.merge(dest:@,src:options,overwrite:true)
-
+      @access ?= {}
       @isRequired ?= false
       @_hooks.afterCreate @
+      samjs.configs._hooks.afterProcess(@)
       return @
     load: (reader) =>
       @loaded = reader
@@ -89,7 +91,7 @@ module.exports = (samjs) ->
           return null
         .then @_hooks.after_Get
     get: (socket) =>
-      return samjs.Promise.reject(new Error("no permission")) unless @read
+      return samjs.Promise.reject(new Error("no permission")) unless @access.read
       return @_hooks.beforeGet(socket: socket)
         .then @_get
         .then (data) =>
@@ -112,20 +114,21 @@ module.exports = (samjs) ->
         .then => @_hooks.after_Set(data:newData, oldData: oldData)
 
     set: (data, socket) =>
-      return samjs.Promise.reject(new Error("no permission")) unless @write
+      return samjs.Promise.reject(new Error("no permission")) unless @access.write
       return @_hooks.beforeSet(data: data, socket: socket)
         .then ({data}) => @_set(data)
         .then ({data,oldData}) =>
           @_hooks.afterSet({data:data,oldData:oldData,socket:socket})
 
     test: (data, socket) ->
-      return samjs.Promise.reject(new Error("no permission")) unless @write
+      return samjs.Promise.reject(new Error("no permission")) unless @access.write
       return @_hooks.beforeTest(data: data, socket: socket)
         .then ({data}) => @_test(data, @data)
         .then (data) => @_hooks.afterTest(data: data, socket:socket)
 
   samjs.configs = (configs...) ->
     samjs.helper.inOrder("configs")
+    samjs.helper.initiateHooks(samjs.configs,[],["afterProcess","beforeProcess"])
     configs = samjs.helper.parseSplats(configs)
     samjs.lifecycle.beforeConfigs configs
     samjs.debug.configs("processing")
