@@ -25,10 +25,11 @@ init = ->
   samjs.reset = ->
     samjs.debug.core "resetting samjs instance"
     samjs.options?.setDefaults?()
+    shutdowns = []
     if samjs._plugins?
       samjs.debug.core "shuting down all plugins"
       for plugin in samjs._plugins
-        plugin.shutdown?.bind(samjs)()
+        shutdowns.push plugin.shutdown?.bind(samjs)()
     samjs.interfaces?.reset()
     for prop in samjs.props
       samjs[prop] = null
@@ -38,7 +39,7 @@ init = ->
     samjs.removeAllListeners()
     samjs.state.reset()
     samjs.expose.plugins()
-    return samjs
+    return samjs.Promise.all(shutdowns).then -> samjs
   samjs.bootstrap = require("./bootstrap")(samjs)
   require("./helper")(samjs)
   require("./state")(samjs)

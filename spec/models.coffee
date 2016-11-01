@@ -4,7 +4,8 @@ samjs = require "../src/main"
 describe "samjs", ->
   describe "models", ->
     describe "simple",->
-      beforeEach -> samjs.reset().plugins().options().configs()
+      beforeEach -> samjs.reset().then (samjs) ->
+        samjs.plugins().options().configs()
       it "should throw on empty or nameless", ->
         (->samjs.models({})).should.throw()
         (->samjs.models({interfaces:[(->)]})).should.throw()

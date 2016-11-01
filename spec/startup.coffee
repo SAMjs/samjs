@@ -7,9 +7,8 @@ url = "http://localhost:"+port+"/"
 
 describe "samjs", ->
   describe "startup", ->
-    beforeEach (done) ->
+    beforeEach ->
       samjs.reset()
-      done()
     it "should start installation if required - tested in install"
     it "should startup",  ->
       samjs.plugins().options().configs().models().startup()

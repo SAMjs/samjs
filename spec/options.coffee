@@ -8,7 +8,8 @@ describe "samjs", ->
   describe "options", ->
     describe "properties", ->
       before ->
-        samjs.reset().plugins().options()
+        samjs.reset().then (samjs) ->
+          samjs.plugins().options()
       it "should have defaults", ->
         samjs.options.config.should.equal("config.json")
       it "should be changeable", ->
@@ -16,12 +17,14 @@ describe "samjs", ->
         samjs.options.config.should.equal(someValue)
       it "should be resetable", ->
         samjs.options.config = someValue
-        samjs.reset().plugins().options()
-        samjs.options.config.should.equal("config.json")
+        samjs.reset().then (samjs) ->
+          samjs.plugins().options()
+          samjs.options.config.should.equal("config.json")
 
     describe "function call", ->
       beforeEach ->
-        samjs.reset().plugins()
+        samjs.reset().then (samjs) ->
+          samjs.plugins()
       it "should make changes", ->
         samjs.options({config:someValue})
         samjs.options.config.should.equal(someValue)

@@ -13,7 +13,9 @@ describe "samjs", ->
     .catch -> return true
   describe "configs", ->
     describe "a config item",->
-      beforeEach -> samjs.reset().plugins().options({config:testConfigFile})
+      beforeEach ->
+        samjs.reset().then (samjs) -> 
+          samjs.plugins().options({config:testConfigFile})
       it "should be createable", ->
         samjs.configs({name:"test"})
         samjs.configs["test"].should.be.a("object")

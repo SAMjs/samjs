@@ -23,8 +23,7 @@ testModel = () ->
       reject(new Error "wrongModel")
 describe "samjs", ->
   before ->
-    samjs.reset()
-    return fs.unlinkAsync testConfigFile
+    samjs.reset().then -> fs.unlinkAsync testConfigFile
     .catch -> return true
 
 

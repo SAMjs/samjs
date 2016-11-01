@@ -18,6 +18,8 @@ module.exports = (samjs) -> (options, cb) ->
     port: 8080
     dev: process.env.NODE_ENV != "production"
     }, options)
+  if options.server
+    samjs.server = options.server
   samjs.debug.bootstrap "calling initial bootstrap"
   cb(samjs)
   samjs.state.onceStarted.then ->
@@ -33,14 +35,14 @@ module.exports = (samjs) -> (options, cb) ->
   if options.dev # add reload
     reload = (resolve, reject) ->
       samjs.debug.bootstrap "resetting samjs"
-      samjs.reset()
-      samjs.io = io
-      try
-        cb(samjs)
-        resolve(samjs)
-      catch e
-        reject(e)
-      samjs.state.onceStarted.then listen
+      samjs.reset().then ->
+        samjs.io = io
+        try
+          cb(samjs)
+          resolve(samjs)
+        catch e
+          reject(e)
+        samjs.state.onceStarted.then listen
     samjs.reload = ->
       shutdowns = []
       if samjs._plugins?

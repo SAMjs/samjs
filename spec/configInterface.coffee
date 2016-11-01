@@ -18,8 +18,7 @@ test = (value) ->
 describe "samjs", ->
   config = null
   before ->
-    samjs.reset()
-    fs.unlinkAsync testConfigFile
+    samjs.reset().then -> fs.unlinkAsync testConfigFile
     .catch -> return true
   describe "configInterface", ->
     before ->

@@ -12,8 +12,7 @@ describe "samjs", ->
         should.not.exist(samjs[prop])
   describe "after setting plugins", ->
     before ->
-      samjs.reset()
-      samjs.plugins()
+      samjs.reset().then (samjs) -> samjs.plugins()
     it "should expose options", ->
       samjs.options.should.be.a("function")
     it "should throw when calling plugins", ->
@@ -47,18 +46,18 @@ describe "samjs", ->
             samjs.plugins.should.throw()
 
   it "should be chainable", ->
-    samjs.reset()
-    samjs.plugins().options.should.be.a("function")
-    samjs.options().configs.should.be.a("function")
-    samjs.configs().models.should.be.a("function")
-    samjs.models().startup.should.be.a("function")
+    samjs.reset().then (samjs) ->
+      samjs.plugins().options.should.be.a("function")
+      samjs.options().configs.should.be.a("function")
+      samjs.configs().models.should.be.a("function")
+      samjs.models().startup.should.be.a("function")
 
   it "should be a singleton", ->
-    samjs.reset()
-    samjs.plugins().options().configs()
-    samjs.models.should.equal(require("../src/main").models)
+    samjs.reset().then (samjs) ->
+      samjs.plugins().options().configs()
+      samjs.models.should.equal(require("../src/main").models)
 
   it "should be blank after reset", ->
-    samjs.reset()
-    for prop in samjs.props
-      should.not.exist(samjs[prop])
+    samjs.reset().then (samjs) ->
+      for prop in samjs.props
+        should.not.exist(samjs[prop])
