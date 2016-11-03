@@ -2,7 +2,7 @@
 
 module.exports = (samjs) ->
   # out: ../lib/hooks.js
-  stateNames = ["configure","configured","install","installed","started"]
+  stateNames = ["startupInitialization","configure","configured","install","installed","started"]
   asyncStateNames = ["beforeExposing","beforeStartup"]
   lifecycleNames = ["reset","beforeConfigure","beforeInstall"].concat stateNames
   for prop in samjs.order

@@ -3,16 +3,18 @@
 module.exports = (samjs) -> samjs.startup = (server) ->
   throw new Error "already started up, shutdown first" if samjs.started?
   samjs.server = server if server?
+  samjs.lifecycle.startupInitialization()
+  samjs.debug.startup "processing"
+  # startup io unless it is there or said otherwise
+  unless samjs.io? or samjs.noServer
+    if samjs.server
+      samjs.debug.startup "got server"
+      samjs.io = samjs.socketio(samjs.server)
+    else
+      samjs.debug.startup "creating httpServer"
+      samjs.io = samjs.socketio()
   samjs.state.startup = samjs.lifecycle.beforeStartup().then ->
-    samjs.debug.startup "processing"
-    # startup io unless it is there or said otherwise
-    unless samjs.io? or samjs.noServer
-      if samjs.server
-        samjs.debug.startup "got server"
-        samjs.io = samjs.socketio(samjs.server)
-      else
-        samjs.debug.startup "creating httpServer"
-        samjs.io = samjs.socketio()
+
     samjs.debug.startup "checking installation"
     install = require("./install")(samjs)
     return samjs.state.ifConfigured()
