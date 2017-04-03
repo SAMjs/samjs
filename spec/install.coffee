@@ -75,27 +75,25 @@ describe "samjs", ->
       install.onceConfigure
       .then (nsp) ->
         nsp.should.equal "/configure"
-        return install.isInConfigMode()
-      .then (nsp) ->
-        nsp.should.equal "/configure"
+        install.inConfigMode.should.equal "/configure"
 
 
     it "should reject a false config", ->
       install.onceConfigure
-      .return install.test("testable","wrongValue")
+      .then -> install.test("testable","wrongValue")
       .catch (e) ->
         e.message.should.equal "wrongConfig"
 
     it "should not save a false config", ->
       install.onceConfigure
-      .return install.set("testable","wrongValue")
+      .then -> install.set("testable","wrongValue")
       .catch (e) ->
         e.message.should.equal "wrongConfig"
 
 
     it "should save a proper config",  ->
       install.onceConfigure
-      .return install.set("testable","rightValue")
+      .then -> install.set("testable","rightValue")
       .then samjs.configs["testable"]._get
       .then (str) ->
         str.should.equal "rightValue"
@@ -114,25 +112,19 @@ describe "samjs", ->
       install.onceInstall
       .then (nsp) ->
         nsp.should.equal "/install"
-        return install.isInInstallMode()
-      .then (nsp) ->
-        nsp.should.equal "/install"
+        install.inInstallMode.should.equal "/install"
 
     it "should reject a false new installation", ->
       install.onceConfigured
       .then ->
-        install.isInInstallMode()
-        .then (nsp) ->
-          client.io.nsp(nsp).getter("set",false)
+        client.io.nsp(install.inInstallMode).getter("set",false)
       .catch (err) ->
         err.message.should.equal "wrongModel"
 
     it "should save a proper new installation", ->
       install.onceConfigured
       .then ->
-        install.isInInstallMode()
-        .then (nsp) ->
-          client.io.nsp(nsp).getter("set",true)
+        client.io.nsp(install.inInstallMode).getter("set",true)
 
 
     it "should trigger onceInstalled server-side",  ->
