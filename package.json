@@ -16,8 +16,10 @@
   ],
   "dependencies": {
     "bluebird": "^3.5.0",
+    "chokidar": "^1.6.1",
     "core-util-is": "^1.0.2",
     "debug": "^2.6.3",
+    "recursive-uncache": "0.0.1",
     "socket.io": "1.7.3"
   },
   "devDependencies": {

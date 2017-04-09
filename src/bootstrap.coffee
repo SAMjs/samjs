@@ -2,6 +2,15 @@
 connections = []
 module.exports = (samjs) -> (options, cb) ->
   io = null
+  busy = false
+  callCb = ->
+    if options.server
+      samjs.server = options.server
+    if samjs.util.isString(cb)
+      require(cb)(samjs)
+    else
+      cb(samjs)
+    busy = true
   listen = ->
     server = samjs.io.httpServer
     server ?= samjs.io
@@ -18,15 +27,32 @@ module.exports = (samjs) -> (options, cb) ->
     port: 8080
     dev: process.env.NODE_ENV != "production"
     }, options)
-  if options.server
-    samjs.server = options.server
   samjs.debug.bootstrap "calling initial bootstrap"
-  cb(samjs)
+  if options.dev
+    chokidar = require "chokidar"
+    uncache = require "recursive-uncache"
+    unwatchedModules = []
+    watcher = null
+    for k,v of require.cache
+      unwatchedModules.push k
+  callCb()
   samjs.state.onceStarted.then ->
     samjs.debug.bootstrap "starting server"
     listen()
-    if options.dev # track server
-      io = samjs.io
+    if options.dev 
+      filesToWatch = []
+      for k,v of require.cache
+        if unwatchedModules.indexOf(k) < 0
+          filesToWatch.push k
+      unless watcher?
+        watcher = chokidar.watch filesToWatch, ignoreInitial: true
+        .on "all", (e,filepath) => 
+          return if busy
+          uncache(filepath)
+          samjs.reload()
+      else
+        watcher.add filesToWatch
+      # track server
       samjs.io.httpServer.on "connection", (con) ->
         connections.push con
         con.on "close", ->
@@ -36,14 +62,15 @@ module.exports = (samjs) -> (options, cb) ->
     reload = (resolve, reject) ->
       samjs.debug.bootstrap "resetting samjs"
       samjs.reset().then ->
-        samjs.io = io
         try
-          cb(samjs)
+          callCb(samjs)
           resolve(samjs)
         catch e
           reject(e)
         samjs.state.onceStarted.then listen
     samjs.reload = ->
+      return if busy
+      busy = true
       shutdowns = []
       if samjs._plugins?
         samjs.debug.core "shuting down all plugins"
