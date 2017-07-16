@@ -1,28 +1,27 @@
-# out: ../lib/options.js
-module.exports = (samjs) -> samjs.options = (options) ->
-  samjs.helper.inOrder("options")
-  samjs.lifecycle.beforeOptions options
-  samjs.debug.options("processing")
+{merge} = require "./_helper"
+hooks = ["options"]
+
+expose = (options) ->
+  await @before.options(options)
+  @debug.options("processing")
   if options?
-    samjs.options = samjs.helper.merge({
-      dest: samjs.options
-      src: options
-      overwrite: true
-      })
-  defaults = [config: "config.json"]
-  for plugin in samjs._plugins
-    if plugin.options?
-      plugin.debug("got default options")
-      defaults.unshift plugin.options
-  samjs.options.setDefaults = (overwrite=true) ->
-    for def in defaults
-      samjs.options = samjs.helper.merge({
-        dest: samjs.options
-        src: def
-        overwrite: overwrite
-        })
-  samjs.options.setDefaults(false)
-  samjs.lifecycle.options options
-  samjs.debug.options("finished")
-  samjs.expose.configs()
-  return samjs
+    @options = merge(@options, options, true)
+  @options.config ?= "config.json"
+  @options.dev ?= process.env.NODE_ENV != "production"
+  await @after.options(@options)
+  @debug.options("finished")
+
+module.exports = 
+  expose: expose
+  hooks: hooks
+  testsConfig:
+    options: test: "test"
+  tests: (should) ->
+    it "should work", =>
+      @options.test.should.equal "test"
+    it "should have defaults", =>
+      @options.config.should.equal "config.json"
+    it "should be changeable", =>
+      @options.config = "someVal"
+      @options.config.should.equal("someVal")
+    

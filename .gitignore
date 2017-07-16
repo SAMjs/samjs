@@ -3,4 +3,6 @@ test/testConfig.json
 config.json
 npm-debug.log
 lib/
+client/
 .vscode/
+shrinkwrap.yaml

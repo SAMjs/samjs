@@ -1,8 +1,3 @@
 # out: ../lib/debug.js
 debug = require("debug")
-samjs = "samjs:"
-names = ["core","bootstrap","plugins","lifecycle","options","models","configs","startup","install","shutdown"]
-module.exports = (name) ->
-  return debug(samjs+name)
-for name in names
-  module.exports[name] = debug(samjs+name)
+module.exports = expose: new Proxy {}, get: (target, name) => debug("samjs:#{name}")
