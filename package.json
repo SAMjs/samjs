@@ -1,7 +1,7 @@
 {
   "name": "samjs",
   "description": "",
-  "version": "0.3.2",
+  "version": "0.4.0",
   "repository": "https://github.com/SAMjs/samjs",
   "author": {
     "name": "Paul Pflugradt",
